@@ -53,12 +53,14 @@ export interface Quote {
   id: string
   service_order: string
   estimated_hours?: number
+  materials?: any
   estimated_cost?: number
   suggested_margin?: number
   status?: string
   created: string
   updated: string
   suggested_price?: number
+  observations?: string
 }
 
 export interface Appointment {

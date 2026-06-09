@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T18:01:37.026Z",
+  "generatedAt": "2026-06-09T18:10:44.778Z",
   "collections": [
     {
       "name": "users",
@@ -700,6 +700,12 @@
         {
           "name": "suggested_price",
           "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observations",
+          "type": "text",
           "required": false,
           "system": false
         }

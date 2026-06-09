@@ -42,6 +42,23 @@ export const getCustomerHistory = async (
     .then((res) => res.items as ServiceOrder[])
 }
 
-export const createQuote = async (data: any) => {
-  return pb.collection('quotes').create(data)
+export const getQuoteByOrderId = async (orderId: string): Promise<any | null> => {
+  try {
+    const records = await pb.collection('quotes').getFullList({
+      filter: `service_order = "${orderId}"`,
+      sort: '-created',
+      limit: 1,
+    })
+    return records[0] || null
+  } catch {
+    return null
+  }
+}
+
+export const saveQuote = async (data: any): Promise<any> => {
+  if (data.id) {
+    return pb.collection('quotes').update(data.id, data)
+  } else {
+    return pb.collection('quotes').create(data)
+  }
 }

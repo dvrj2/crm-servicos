@@ -9,7 +9,6 @@ import {
   getOrderMessages,
   createOrderMessage,
   getCustomerHistory,
-  createQuote,
 } from '@/services/orders'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -58,8 +57,6 @@ export default function OrderDetail() {
   const [loading, setLoading] = useState(true)
 
   const [newMessage, setNewMessage] = useState('')
-  const [isQuoteOpen, setIsQuoteOpen] = useState(false)
-  const [quoteData, setQuoteData] = useState({ estimated_hours: '', estimated_cost: '' })
 
   const loadData = async () => {
     if (!id) return
@@ -130,24 +127,6 @@ export default function OrderDetail() {
       toast({ title: 'Encaminhado ao supervisor com sucesso!' })
     } catch {
       toast({ title: 'Erro ao encaminhar', variant: 'destructive' })
-    }
-  }
-
-  const handleCreateQuote = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!order) return
-    try {
-      await createQuote({
-        service_order: order.id,
-        estimated_hours: Number(quoteData.estimated_hours),
-        estimated_cost: Number(quoteData.estimated_cost),
-        status: 'pendente',
-      })
-      await pb.collection('service_orders').update(order.id, { status: 'orçamento' })
-      setIsQuoteOpen(false)
-      toast({ title: 'Orçamento criado com sucesso!' })
-    } catch {
-      toast({ title: 'Erro ao criar orçamento', variant: 'destructive' })
     }
   }
 
@@ -291,9 +270,14 @@ export default function OrderDetail() {
               <CardTitle className="text-sm font-semibold">Ações Operacionais</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full justify-start" onClick={() => setIsQuoteOpen(true)}>
+              <Button
+                className="w-full justify-start"
+                onClick={() => navigate(`/order/${order.id}/quote`)}
+              >
                 <FileText className="w-4 h-4 mr-2" />
-                Criar Orçamento
+                {order.status === 'orçamento' || order.status === 'aprovado'
+                  ? 'Ver Orçamento'
+                  : 'Orçamento e Proposta'}
               </Button>
               <Button
                 variant="outline"
@@ -479,46 +463,6 @@ export default function OrderDetail() {
           </div>
         </div>
       </div>
-
-      <Dialog open={isQuoteOpen} onOpenChange={setIsQuoteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Criar Orçamento Inicial</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleCreateQuote} className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label>Horas Estimadas (Previsão)</Label>
-              <Input
-                type="number"
-                min="0.5"
-                step="0.5"
-                required
-                placeholder="Ex: 2.5"
-                value={quoteData.estimated_hours}
-                onChange={(e) => setQuoteData({ ...quoteData, estimated_hours: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Custo Estimado (R$)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                placeholder="Ex: 150.00"
-                value={quoteData.estimated_cost}
-                onChange={(e) => setQuoteData({ ...quoteData, estimated_cost: e.target.value })}
-              />
-            </div>
-            <DialogFooter className="mt-6">
-              <Button type="button" variant="outline" onClick={() => setIsQuoteOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit">Confirmar Orçamento</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import NotFound from './pages/NotFound'
 import Schedule from './pages/Schedule'
 import OrderDetail from './pages/OrderDetail'
+import QuotePage from './pages/Quote'
 import Execution from './pages/Execution'
 import Report from './pages/Report'
 import Reports from './pages/Reports'
@@ -30,6 +31,7 @@ const App = () => (
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />
               <Route path="/order/:id" element={<OrderDetail />} />
+              <Route path="/order/:id/quote" element={<QuotePage />} />
               <Route path="/schedule" element={<Schedule />} />
               <Route path="/execution/:id" element={<Execution />} />
               <Route path="/report/:id" element={<Report />} />
