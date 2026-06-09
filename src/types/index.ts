@@ -1,4 +1,4 @@
-export type Urgency = 'baixa' | 'media' | 'alta'
+export type Urgency = 'baixa' | 'media' | 'alta' | 'critica'
 export type OrderStatus =
   | 'novo'
   | 'qualificado'
@@ -20,6 +20,7 @@ export interface User {
   region?: string
   certifications?: string
   status?: 'active' | 'inactive'
+  operational_status?: 'available' | 'en_route' | 'busy'
 }
 
 export type PaymentStatus = 'pago' | 'pendente' | 'vencido'
@@ -27,6 +28,7 @@ export type PaymentStatus = 'pago' | 'pendente' | 'vencido'
 export interface ServiceOrder {
   id: string
   customer_name: string
+  sla_deadline_minutes?: number
   final_value?: number
   payment_status?: PaymentStatus
   payment_link?: string

@@ -84,13 +84,22 @@ export default function Schedule() {
       capacity = tech?.capacity_diaria_hours || 8
     }
 
-    if (totalDuration + (os.predicted_duration_hours || 0) > capacity) {
+    const newTotal = totalDuration + (os.predicted_duration_hours || 0)
+    if (newTotal > capacity) {
       toast({
         variant: 'destructive',
         title: 'Capacidade Excedida',
         description: 'O técnico não possui horas suficientes para este serviço.',
       })
       return
+    }
+
+    if (newTotal / capacity > 0.85) {
+      toast({
+        variant: 'default',
+        title: 'Aviso de Sobrecarga',
+        description: 'O técnico ficará com mais de 85% da capacidade ocupada neste dia.',
+      })
     }
 
     const origDate = new Date(os.scheduled_date || new Date())

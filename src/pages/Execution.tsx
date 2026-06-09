@@ -93,6 +93,7 @@ export default function Execution() {
     if (!order) return
     captureLocation()
     await updateExecutionOrder(order.id, { operational_status: 'en_route' })
+    if (user?.id) await pb.collection('users').update(user.id, { operational_status: 'en_route' })
     loadData()
   }
 
@@ -121,6 +122,7 @@ export default function Execution() {
       started_at: new Date().toISOString(),
       is_rework: isRework,
     })
+    if (user?.id) await pb.collection('users').update(user.id, { operational_status: 'busy' })
     loadData()
   }
 
@@ -168,6 +170,7 @@ export default function Execution() {
       technical_observations: observations,
       actual_duration_hours: durationHours,
     })
+    if (user?.id) await pb.collection('users').update(user.id, { operational_status: 'available' })
     toast({ title: 'Sucesso', description: 'Serviço concluído com sucesso.' })
     navigate('/')
   }

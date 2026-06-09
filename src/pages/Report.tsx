@@ -126,7 +126,15 @@ export default function Report() {
   }
 
   const handleWhatsApp = () => {
-    const text = `Olá! Aqui é o laudo técnico do serviço na OS ${order.id}. ${formData.diagnosis ? `Diagnóstico: ${formData.diagnosis}` : ''}`
+    const text = `Olá, ${order.customer_name}! 📄 Aqui é o laudo técnico do serviço realizado (OS ${order.id}).
+🛠️ *Serviço:* ${order.service_type}
+📝 *Diagnóstico:* ${formData.diagnosis || 'Não informado'}
+✅ *Atividades:* ${formData.activities_performed || 'Não informado'}
+⚠️ *Condição Atual:* ${formData.current_condition || 'Não informado'}
+💡 *Recomendações:* ${formData.recommendations || 'Não informado'}
+🔧 *Materiais:* ${order.materials_used || 'Nenhum material adicional registrado.'}
+
+Agradecemos a preferência! Qualquer dúvida, estamos à disposição.`
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
   }
 

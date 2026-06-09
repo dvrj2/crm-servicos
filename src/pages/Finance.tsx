@@ -116,8 +116,13 @@ export default function Finance() {
 
   const sendWhatsApp = (order: ServiceOrder) => {
     const link = order.payment_link || 'Link não disponível'
+    const val = formatCurrency(order.final_value || 0)
     const text = encodeURIComponent(
-      `Olá ${order.customer_name}, segue o link para pagamento do serviço realizado: ${link}`,
+      `Olá ${order.customer_name}, segue o resumo e link para pagamento do serviço de ${order.service_type}.
+💰 *Valor Final:* ${val}
+💳 *Link para pagamento:* ${link}
+
+Agradecemos a confiança em nossos serviços!`,
     )
     window.open(`https://wa.me/?text=${text}`, '_blank')
   }

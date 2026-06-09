@@ -24,6 +24,13 @@ export function KanbanCard({ order, onClick }: KanbanCardProps) {
         pulse: true,
         border: 'border-l-red-500 bg-red-50/50',
       }
+    if (hoursRemaining < 1)
+      return {
+        label: `${Math.round(hoursRemaining * 60)}m rest`,
+        color: 'text-red-500',
+        pulse: true,
+        border: 'border-l-red-500 bg-red-50/30',
+      }
     if (hoursRemaining < 2)
       return {
         label: `${Math.round(hoursRemaining * 10) / 10}h rest`,
@@ -40,6 +47,7 @@ export function KanbanCard({ order, onClick }: KanbanCardProps) {
   }
 
   const urgencyColors = {
+    critica: 'bg-red-200 text-red-900 hover:bg-red-300 border-red-300 font-bold',
     alta: 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200',
     media: 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200',
     baixa: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200',

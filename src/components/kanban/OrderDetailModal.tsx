@@ -71,7 +71,13 @@ export function OrderDetailModal({ order, technicians, onClose, onUpdate }: Orde
 
   const handleWhatsAppBudget = () => {
     if (!order) return
-    const text = `Olá ${order.customer_name}! Segue a estimativa para o serviço de ${order.service_type}.\n\nValor Sugerido: R$ ${suggestedPrice.toFixed(2)}\n\nPodemos aprovar?`
+    const text = `Olá ${order.customer_name}! Segue a estimativa para o serviço de ${order.service_type}.
+
+🛠️ *Serviço a ser realizado:* ${order.service_type}
+⏱️ *Tempo estimado:* ${predictedHours} horas
+💰 *Valor Sugerido:* R$ ${suggestedPrice.toFixed(2)}
+
+Podemos seguir com a aprovação? Aguardamos seu retorno para agendar.`
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
   }
 

@@ -119,6 +119,7 @@ export default function Index() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="_all">Todas Urgências</SelectItem>
+              <SelectItem value="critica">Crítica</SelectItem>
               <SelectItem value="alta">Alta</SelectItem>
               <SelectItem value="media">Média</SelectItem>
               <SelectItem value="baixa">Baixa</SelectItem>
