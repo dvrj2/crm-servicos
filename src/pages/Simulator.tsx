@@ -86,15 +86,27 @@ export default function Simulator() {
     }
   }
 
-  const handlePhotosMock = async () => {
-    const mockFiles = [
-      new File([''], 'foto1.jpg', { type: 'image/jpeg' }),
-      new File([''], 'foto2.jpg', { type: 'image/jpeg' }),
-      new File([''], 'foto3.jpg', { type: 'image/jpeg' }),
-    ]
-    await uploadInitialPhotos(osId!, mockFiles)
-    setActiveStep(3)
-    toast.success('Fotos mockadas enviadas com sucesso')
+  const handlePhotosMock = async (url?: string) => {
+    try {
+      let files: File[] = []
+      if (url) {
+        toast.info('Baixando imagem simulada...')
+        const res = await fetch(url)
+        const blob = await res.blob()
+        files = [new File([blob], 'foto.jpg', { type: 'image/jpeg' })]
+      } else {
+        files = [
+          new File([''], 'foto1.jpg', { type: 'image/jpeg' }),
+          new File([''], 'foto2.jpg', { type: 'image/jpeg' }),
+          new File([''], 'foto3.jpg', { type: 'image/jpeg' }),
+        ]
+      }
+      await uploadInitialPhotos(osId!, files)
+      setActiveStep(3)
+      toast.success('Fotos simuladas enviadas com sucesso')
+    } catch (e) {
+      toast.error('Erro ao simular foto')
+    }
   }
 
   const handleApprove = async () => {
@@ -207,6 +219,46 @@ export default function Simulator() {
                           {step.id === 1 && (
                             <div className="space-y-3">
                               <Label>Mensagem do Cliente</Label>
+                              <div className="flex flex-wrap gap-2 mb-2">
+                                <Badge
+                                  variant="outline"
+                                  className="cursor-pointer hover:bg-slate-100"
+                                  onClick={() =>
+                                    setMessage(
+                                      'Tem um cheiro de queimado muito forte vindo do quadro!',
+                                    )
+                                  }
+                                >
+                                  Cheiro de queimado
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="cursor-pointer hover:bg-slate-100"
+                                  onClick={() => setMessage('Saindo faíscas da tomada, socorro!')}
+                                >
+                                  Faíscas
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="cursor-pointer hover:bg-slate-100"
+                                  onClick={() =>
+                                    setMessage('A luz está piscando sem parar e a internet caiu.')
+                                  }
+                                >
+                                  Luz piscando
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="cursor-pointer hover:bg-slate-100"
+                                  onClick={() =>
+                                    setMessage(
+                                      'Minha máquina de lavar parou de funcionar e está vazando água. Preciso de ajuda urgente!',
+                                    )
+                                  }
+                                >
+                                  Normal
+                                </Badge>
+                              </div>
                               <Textarea
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
@@ -218,18 +270,38 @@ export default function Simulator() {
                               </Button>
                             </div>
                           )}
-
                           {step.id === 2 && (
                             <div className="space-y-3">
                               <p className="text-sm text-slate-600">
-                                O fluxo aguarda as fotos iniciais para complementar o diagnóstico.
+                                O fluxo aguarda as fotos iniciais para complementar o diagnóstico. A
+                                IA analisará a imagem.
                               </p>
-                              <Button onClick={handlePhotosMock} className="w-full sm:w-auto">
-                                Gerar 3 Fotos Mockadas
-                              </Button>
+                              <div className="flex flex-col sm:flex-row gap-3">
+                                <Button
+                                  onClick={() =>
+                                    handlePhotosMock(
+                                      'https://img.usecurling.com/p/512/512?q=burnt%20electrical%20panel',
+                                    )
+                                  }
+                                  variant="destructive"
+                                  className="w-full sm:w-auto"
+                                >
+                                  Foto: Quadro Queimado
+                                </Button>
+                                <Button
+                                  onClick={() =>
+                                    handlePhotosMock(
+                                      'https://img.usecurling.com/p/512/512?q=clean%20electrical%20panel',
+                                    )
+                                  }
+                                  variant="outline"
+                                  className="w-full sm:w-auto"
+                                >
+                                  Foto: Quadro Normal
+                                </Button>
+                              </div>
                             </div>
                           )}
-
                           {step.id === 3 && (
                             <div className="space-y-3">
                               <p className="text-sm text-slate-600">
