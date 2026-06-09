@@ -19,9 +19,18 @@ export interface User {
   current_lng?: number
 }
 
+export type PaymentStatus = 'pago' | 'pendente' | 'vencido'
+
 export interface ServiceOrder {
   id: string
   customer_name: string
+  final_value?: number
+  payment_status?: PaymentStatus
+  payment_link?: string
+  planned_margin?: number
+  actual_margin?: number
+  payment_proof?: string
+  customer_delays_count?: number
   service_type: string
   urgency: Urgency
   sla_deadline: string

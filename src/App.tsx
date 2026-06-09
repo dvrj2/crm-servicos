@@ -10,6 +10,7 @@ import Execution from './pages/Execution'
 import Report from './pages/Report'
 import Reports from './pages/Reports'
 import Technicians from './pages/Technicians'
+import Finance from './pages/Finance'
 import Layout from './components/Layout'
 import { AuthProvider } from './hooks/use-auth'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/report/:id" element={<Report />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/technicians" element={<Technicians />} />
+              <Route path="/finance" element={<Finance />} />
             </Route>
           </Route>
 

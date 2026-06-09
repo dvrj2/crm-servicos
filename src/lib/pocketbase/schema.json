@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T13:00:00.148Z",
+  "generatedAt": "2026-06-09T13:08:55.842Z",
   "collections": [
     {
       "name": "users",
@@ -273,6 +273,49 @@
           "type": "text",
           "required": false,
           "system": false
+        },
+        {
+          "name": "final_value",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "payment_status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pago", "pendente", "vencido"]
+        },
+        {
+          "name": "payment_link",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "planned_margin",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "actual_margin",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "payment_proof",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "customer_delays_count",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -281,7 +324,10 @@
         "CREATE INDEX idx_so_technician ON service_orders (technician)",
         "CREATE INDEX `idx_so_lat` ON `service_orders` (lat)",
         "CREATE INDEX `idx_so_lng` ON `service_orders` (lng)",
-        "CREATE INDEX `idx_so_scheduled_date` ON `service_orders` (scheduled_date)"
+        "CREATE INDEX `idx_so_scheduled_date` ON `service_orders` (scheduled_date)",
+        "CREATE INDEX `idx_so_payment_status` ON `service_orders` (payment_status)",
+        "CREATE INDEX `idx_so_actual_margin` ON `service_orders` (actual_margin)",
+        "CREATE INDEX `idx_so_finished_at` ON `service_orders` (finished_at)"
       ]
     },
     {

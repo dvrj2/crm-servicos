@@ -19,6 +19,7 @@ import {
   FileBarChart,
   LogOut,
   CalendarDays,
+  DollarSign,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Input } from '@/components/ui/input'
@@ -81,6 +82,18 @@ export default function Layout() {
                       <Link to="/technicians">
                         <Users />
                         <span>Técnicos</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/finance'}
+                      tooltip="Financeiro"
+                    >
+                      <Link to="/finance">
+                        <DollarSign />
+                        <span>Financeiro</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

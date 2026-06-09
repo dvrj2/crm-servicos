@@ -63,10 +63,10 @@ export function OrderDetailModal({ order, technicians, onClose, onUpdate }: Orde
       toast({ title: 'OS Atualizada', description: 'As alterações foram salvas com sucesso.' })
       onUpdate()
       onClose()
-    } catch (err) {
+    } catch (err: any) {
       toast({
         title: 'Erro',
-        description: 'Não foi possível salvar as alterações.',
+        description: err?.response?.message || 'Não foi possível salvar as alterações.',
         variant: 'destructive',
       })
     } finally {
