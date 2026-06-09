@@ -10,8 +10,12 @@ import {
   updateChecklistItem,
   updateExecutionOrder,
   updateUserLocation,
+  ensureAppointment,
+  getExecutionForAppointment,
+  createExecution,
+  updateExecution,
 } from '@/services/execution'
-import { ServiceOrder, ServiceOrderPhoto, ServiceOrderChecklistItem } from '@/types'
+import { ServiceOrder, ServiceOrderPhoto, ServiceOrderChecklistItem, Appointment } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -45,10 +49,14 @@ export default function Execution() {
   const { user } = useAuth()
 
   const [order, setOrder] = useState<ServiceOrder | null>(null)
+  const [appointment, setAppointment] = useState<Appointment | null>(null)
+  const [execution, setExecution] = useState<any | null>(null)
   const [photos, setPhotos] = useState<ServiceOrderPhoto[]>([])
   const [checklists, setChecklists] = useState<ServiceOrderChecklistItem[]>([])
 
   const [reworkDialogOpen, setReworkDialogOpen] = useState(false)
+  const [isRedrawing, setIsRedrawing] = useState(false)
+
   const [materials, setMaterials] = useState('')
   const [observations, setObservations] = useState('')
 
@@ -56,12 +64,32 @@ export default function Execution() {
   const afterInputRef = useRef<HTMLInputElement>(null)
 
   const loadData = async () => {
-    if (!id) return
+    if (!id || !user?.id) return
     try {
       const o = await getServiceOrder(id)
       setOrder(o)
-      setMaterials(o.materials_used || '')
-      setObservations(o.technical_observations || '')
+
+      const appt = await ensureAppointment(id, user.id)
+      setAppointment(appt)
+
+      let exec = null
+      if (appt) {
+        exec = await getExecutionForAppointment(appt.id)
+        setExecution(exec)
+      }
+
+      if (exec) {
+        try {
+          const mats = JSON.parse(exec.materials_used || '""')
+          setMaterials(typeof mats === 'string' ? mats : JSON.stringify(mats))
+        } catch {
+          setMaterials(exec.materials_used || '')
+        }
+        setObservations(exec.technical_report || '')
+      } else {
+        setMaterials(o.materials_used || '')
+        setObservations(o.technical_observations || '')
+      }
 
       const [p, c] = await Promise.all([getOrderPhotos(id), getChecklistItems(id)])
       setPhotos(p)
@@ -77,7 +105,7 @@ export default function Execution() {
 
   useEffect(() => {
     loadData()
-  }, [id])
+  }, [id, user?.id])
 
   const captureLocation = () => {
     if (navigator.geolocation && user?.id) {
@@ -85,6 +113,7 @@ export default function Execution() {
         (pos) =>
           updateUserLocation(user.id, pos.coords.latitude, pos.coords.longitude).catch(() => {}),
         () => console.warn('GPS não disponível'),
+        { enableHighAccuracy: true, timeout: 5000 },
       )
     }
   }
@@ -93,6 +122,9 @@ export default function Execution() {
     if (!order) return
     captureLocation()
     await updateExecutionOrder(order.id, { operational_status: 'en_route' })
+    if (appointment) {
+      await pb.collection('appointments').update(appointment.id, { operation_status: 'a_caminho' })
+    }
     if (user?.id) await pb.collection('users').update(user.id, { operational_status: 'en_route' })
     loadData()
   }
@@ -122,12 +154,18 @@ export default function Execution() {
       started_at: new Date().toISOString(),
       is_rework: isRework,
     })
+    if (appointment) {
+      await pb
+        .collection('appointments')
+        .update(appointment.id, { operation_status: 'em_execucao' })
+    }
     if (user?.id) await pb.collection('users').update(user.id, { operational_status: 'busy' })
     loadData()
   }
 
   const handlePause = async () => {
     if (!order) return
+    captureLocation()
     await updateExecutionOrder(order.id, {
       operational_status: 'paused',
       last_paused_at: new Date().toISOString(),
@@ -137,6 +175,7 @@ export default function Execution() {
 
   const handleResume = async () => {
     if (!order || !order.last_paused_at) return
+    captureLocation()
     const pausedAt = new Date(order.last_paused_at).getTime()
     const now = new Date().getTime()
     const pauseMins = Math.round((now - pausedAt) / 60000)
@@ -150,12 +189,19 @@ export default function Execution() {
     loadData()
   }
 
-  const allChecklistsDone = checklists.length > 0 && checklists.every((c) => c.is_completed)
-  const canFinish = allChecklistsDone && afterPhotos.length > 0 && !!order?.signature
+  const allChecklistsDone = checklists.every((c) => c.is_completed)
+  const canFinish =
+    allChecklistsDone &&
+    beforePhotos.length > 0 &&
+    afterPhotos.length > 0 &&
+    !!execution?.signature &&
+    !isRedrawing
 
   const handleFinish = async () => {
     if (!order || !order.started_at) return
     if (!canFinish) return
+
+    captureLocation()
 
     const startedAt = new Date(order.started_at).getTime()
     const now = new Date().getTime()
@@ -166,10 +212,20 @@ export default function Execution() {
       operational_status: 'completed',
       status: 'concluído',
       finished_at: new Date().toISOString(),
-      materials_used: materials,
-      technical_observations: observations,
       actual_duration_hours: durationHours,
     })
+
+    if (appointment) {
+      await pb.collection('appointments').update(appointment.id, { operation_status: 'concluido' })
+    }
+
+    if (execution) {
+      await updateExecution(execution.id, {
+        materials_used: JSON.stringify(materials),
+        technical_report: observations,
+      })
+    }
+
     if (user?.id) await pb.collection('users').update(user.id, { operational_status: 'available' })
     toast({ title: 'Sucesso', description: 'Serviço concluído com sucesso.' })
     navigate('/')
@@ -181,6 +237,12 @@ export default function Execution() {
       materials_used: materials,
       technical_observations: observations,
     })
+    if (execution) {
+      await updateExecution(execution.id, {
+        materials_used: JSON.stringify(materials),
+        technical_report: observations,
+      })
+    }
     toast({ title: 'Salvo', description: 'Anotações salvas.' })
   }
 
@@ -198,14 +260,23 @@ export default function Execution() {
   }
 
   const handleSignatureSave = async (file: File) => {
-    if (!order) return
+    if (!appointment) return
     const fd = new FormData()
     fd.append('signature', file)
+    fd.append('appointment', appointment.id)
+    fd.append('materials_used', JSON.stringify(materials))
+    fd.append('technical_report', observations)
+
     try {
-      await updateExecutionOrder(order.id, fd)
+      if (execution) {
+        await updateExecution(execution.id, fd)
+      } else {
+        await createExecution(fd)
+      }
+      setIsRedrawing(false)
       toast({ title: 'Assinatura', description: 'Assinatura salva.' })
       loadData()
-    } catch {
+    } catch (e) {
       toast({ title: 'Erro', description: 'Falha ao salvar assinatura.', variant: 'destructive' })
     }
   }
@@ -467,12 +538,13 @@ export default function Execution() {
 
           <div className="pt-4 border-t space-y-3">
             <label className="text-sm font-medium text-slate-700">
-              Assinatura do Cliente {!order.signature && <span className="text-red-500">*</span>}
+              Assinatura do Cliente{' '}
+              {(!execution?.signature || isRedrawing) && <span className="text-red-500">*</span>}
             </label>
-            {order.signature ? (
+            {execution?.signature && !isRedrawing ? (
               <div className="border border-slate-200 rounded-md p-4 bg-slate-50 flex flex-col items-center">
                 <img
-                  src={pb.files.getURL(order, order.signature)}
+                  src={pb.files.getURL(execution, execution.signature)}
                   alt="Assinatura"
                   className="max-h-24 object-contain mix-blend-multiply"
                 />
@@ -481,17 +553,26 @@ export default function Execution() {
                     variant="ghost"
                     size="sm"
                     className="text-red-600 hover:text-red-700 mt-2"
-                    onClick={async () => {
-                      await updateExecutionOrder(order.id, { signature: null })
-                      loadData()
-                    }}
+                    onClick={() => setIsRedrawing(true)}
                   >
                     Refazer Assinatura
                   </Button>
                 )}
               </div>
             ) : opStatus !== 'completed' ? (
-              <SignaturePad onSave={handleSignatureSave} onClear={() => {}} />
+              <div className="space-y-2">
+                <SignaturePad onSave={handleSignatureSave} onClear={() => {}} />
+                {isRedrawing && execution?.signature && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-slate-500"
+                    onClick={() => setIsRedrawing(false)}
+                  >
+                    Cancelar e Manter Assinatura Anterior
+                  </Button>
+                )}
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground">Sem assinatura providenciada.</p>
             )}

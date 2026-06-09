@@ -43,3 +43,43 @@ export const updateExecutionOrder = async (
 export const updateUserLocation = async (userId: string, lat: number, lng: number) => {
   return await pb.collection('users').update(userId, { current_lat: lat, current_lng: lng })
 }
+
+export const ensureAppointment = async (orderId: string, technicianId: string) => {
+  try {
+    return await pb
+      .collection('appointments')
+      .getFirstListItem(`quote.service_order = "${orderId}"`)
+  } catch {
+    try {
+      const quote = await pb.collection('quotes').getFirstListItem(`service_order = "${orderId}"`)
+      return await pb.collection('appointments').create({
+        quote: quote.id,
+        technician: technicianId,
+        start_time: new Date().toISOString(),
+        operation_status: 'pendente',
+      })
+    } catch {
+      return await pb.collection('appointments').create({
+        technician: technicianId,
+        start_time: new Date().toISOString(),
+        operation_status: 'pendente',
+      })
+    }
+  }
+}
+
+export const getExecutionForAppointment = async (appId: string) => {
+  try {
+    return await pb.collection('executions').getFirstListItem(`appointment = "${appId}"`)
+  } catch {
+    return null
+  }
+}
+
+export const createExecution = async (data: FormData | Record<string, any>) => {
+  return await pb.collection('executions').create(data)
+}
+
+export const updateExecution = async (id: string, data: FormData | Record<string, any>) => {
+  return await pb.collection('executions').update(id, data)
+}
