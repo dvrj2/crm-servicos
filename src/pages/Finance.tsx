@@ -87,9 +87,7 @@ export default function Finance() {
   const totalRevenue = filteredOrders.reduce((acc, o) => acc + (o.final_value || 0), 0)
   const ticketMedio = filteredOrders.length ? totalRevenue / filteredOrders.length : 0
 
-  const inadimplentes = filteredOrders.filter(
-    (o) => o.payment_status === 'pendente' || o.payment_status === 'vencido',
-  )
+  const inadimplentes = filteredOrders.filter((o) => o.payment_status === 'vencido')
   const inadimplentesValue = inadimplentes.reduce((acc, o) => acc + (o.final_value || 0), 0)
   const inadimplentesCount = inadimplentes.length
 
@@ -176,7 +174,7 @@ export default function Finance() {
               {formatCurrency(inadimplentesValue)}
             </div>
             <p className="text-xs text-red-600/80 mt-1">
-              {inadimplentesCount} OS(s) com pagamento pendente ou vencido
+              {inadimplentesCount} OS(s) com pagamento vencido
             </p>
           </CardContent>
         </Card>
