@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T19:33:51.750Z",
+  "generatedAt": "2026-06-09T20:00:34.575Z",
   "collections": [
     {
       "name": "users",
@@ -870,7 +870,7 @@
         {
           "name": "execution",
           "type": "relation",
-          "required": true,
+          "required": false,
           "system": false,
           "collectionRef": "executions"
         },
@@ -924,6 +924,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "service_order",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "service_orders"
         }
       ],
       "indexes": []
@@ -942,14 +949,14 @@
         {
           "name": "service_order",
           "type": "relation",
-          "required": true,
+          "required": false,
           "system": false,
           "collectionRef": "service_orders"
         },
         {
           "name": "sender",
           "type": "relation",
-          "required": true,
+          "required": false,
           "system": false,
           "collectionRef": "users"
         },
