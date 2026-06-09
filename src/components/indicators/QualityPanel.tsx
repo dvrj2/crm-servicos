@@ -16,40 +16,21 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
+  Legend,
 } from 'recharts'
 
 export function QualityPanel({ metrics, orders }: any) {
   const incompleteReports = orders.filter(
-    (o: any) => o.status === 'concluido' && (!o.signature || o.has_pending_checklist),
+    (o: any) => o.status === 'concluído' && (!o.signature || o.has_pending_checklist),
   )
   const incompleteRate = orders.length ? incompleteReports.length / orders.length : 0
 
-  const radarData = [
-    { subject: 'Velocidade', A: Math.max(0, 100 - metrics.firstContactLatency * 2), fullMark: 100 },
-    { subject: 'Qualidade', A: Math.max(0, metrics.npsScore), fullMark: 100 },
-    { subject: 'Eficiência', A: Math.min(100, metrics.occupancy * 100), fullMark: 100 },
-    { subject: 'Precisão', A: Math.max(0, 100 - metrics.reworkRate * 500), fullMark: 100 },
-  ]
+  const { radarData, topTechs, paretoData } = metrics
 
-  // Pareto data (Falhas/Retrabalho por Categoria)
-  const failureCount: Record<string, number> = {}
-  orders.forEach((o: any) => {
-    if (o.is_rework && o.category) {
-      failureCount[o.category] = (failureCount[o.category] || 0) + 1
-    }
-  })
-
-  const sortedFailures = Object.entries(failureCount).sort((a, b) => b[1] - a[1])
-  const totalFailures = sortedFailures.reduce((acc, curr) => acc + curr[1], 0)
-
-  let accum = 0
-  const paretoData = sortedFailures.map(([name, count]) => {
-    accum += count
-    return {
-      name,
-      count,
-      cumulative: totalFailures ? (accum / totalFailures) * 100 : 0,
-    }
+  const colors = ['hsl(var(--primary))', '#10b981', '#f59e0b']
+  const radarConfig: any = {}
+  topTechs.forEach((tech: any, idx: number) => {
+    radarConfig[`Tech${idx + 1}`] = { label: tech.name, color: colors[idx % colors.length] }
   })
 
   return (
@@ -76,34 +57,44 @@ export function QualityPanel({ metrics, orders }: any) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Desempenho Multidimensional</CardTitle>
+            <CardTitle>Radar de Técnicos (Top 3)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              <ChartContainer config={{ A: { label: 'Score', color: 'hsl(var(--primary))' } }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12 }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                    <Radar
-                      name="Score"
-                      dataKey="A"
-                      stroke="var(--color-A)"
-                      fill="var(--color-A)"
-                      fillOpacity={0.5}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </div>
+            {topTechs.length > 0 ? (
+              <div className="h-[300px]">
+                <ChartContainer config={radarConfig}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart cx="50%" cy="50%" outerRadius="65%" data={radarData}>
+                      <PolarGrid />
+                      <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
+                      {topTechs.map((tech: any, idx: number) => (
+                        <Radar
+                          key={tech.id}
+                          name={tech.name}
+                          dataKey={`Tech${idx + 1}`}
+                          stroke={`var(--color-Tech${idx + 1})`}
+                          fill={`var(--color-Tech${idx + 1})`}
+                          fillOpacity={0.3}
+                        />
+                      ))}
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </div>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">
+                Dados insuficientes
+              </div>
+            )}
           </CardContent>
         </Card>
 
         <Card className="shadow-sm lg:col-span-2">
           <CardHeader>
-            <CardTitle>Pareto de Falhas/Retrabalho por Categoria</CardTitle>
+            <CardTitle>Pareto de Problemas Mais Comuns (Por Tipo)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
@@ -132,6 +123,7 @@ export function QualityPanel({ metrics, orders }: any) {
                       dataKey="cumulative"
                       stroke="var(--color-cumulative)"
                       strokeWidth={2}
+                      dot={{ r: 3 }}
                     />
                   </ComposedChart>
                 </ResponsiveContainer>

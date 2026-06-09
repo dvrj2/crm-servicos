@@ -9,8 +9,7 @@ import { User, ServiceOrder } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
 
 export function FiltersBar({ filters, setFilters, users, orders }: any) {
-  const regions = Array.from(new Set(orders.map((o: ServiceOrder) => o.region).filter(Boolean)))
-  const categories = Array.from(
+  const serviceTypes = Array.from(
     new Set(orders.map((o: ServiceOrder) => o.service_type).filter(Boolean)),
   )
 
@@ -20,7 +19,7 @@ export function FiltersBar({ filters, setFilters, users, orders }: any) {
 
   return (
     <Card className="shadow-sm">
-      <CardContent className="p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className="text-xs font-medium text-slate-500 mb-1 block">Período</label>
           <Select value={filters.period} onValueChange={(v) => update('period', v)}>
@@ -55,66 +54,21 @@ export function FiltersBar({ filters, setFilters, users, orders }: any) {
           </Select>
         </div>
         <div>
-          <label className="text-xs font-medium text-slate-500 mb-1 block">Região</label>
-          <Select value={filters.region || 'all'} onValueChange={(v) => update('region', v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Todas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as Regiões</SelectItem>
-              {regions.map((r: any) => (
-                <SelectItem key={r} value={r}>
-                  {r}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-slate-500 mb-1 block">Categoria</label>
-          <Select value={filters.category || 'all'} onValueChange={(v) => update('category', v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Todas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas as Categorias</SelectItem>
-              {categories.map((c: any) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-slate-500 mb-1 block">Urgência</label>
-          <Select value={filters.urgency || 'all'} onValueChange={(v) => update('urgency', v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Todas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="baixa">Baixa</SelectItem>
-              <SelectItem value="media">Média</SelectItem>
-              <SelectItem value="alta">Alta</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-slate-500 mb-1 block">Cliente</label>
-          <Select value={filters.customer || 'all'} onValueChange={(v) => update('customer', v)}>
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Tipo de Serviço</label>
+          <Select
+            value={filters.serviceType || 'all'}
+            onValueChange={(v) => update('serviceType', v)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos os Clientes</SelectItem>
-              {Array.from(new Set(orders.map((o: ServiceOrder) => o.customer_name)))
-                .slice(0, 50)
-                .map((c: any) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
+              <SelectItem value="all">Todos os Tipos</SelectItem>
+              {serviceTypes.map((c: any) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

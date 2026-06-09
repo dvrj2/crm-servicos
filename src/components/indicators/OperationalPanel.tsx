@@ -1,5 +1,3 @@
-import { KPI } from './KPI'
-import { Activity, Clock, Wrench, BarChart2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import {
@@ -18,11 +16,13 @@ import { format, parseISO } from 'date-fns'
 export function OperationalPanel({ metrics, orders }: any) {
   const slaDataMap: Record<string, { total: number; met: number }> = {}
   orders.forEach((o: any) => {
-    const d = format(parseISO(o.created), 'MMM dd')
-    if (!slaDataMap[d]) slaDataMap[d] = { total: 0, met: 0 }
-    slaDataMap[d].total++
-    const completion = o.finished_at ? parseISO(o.finished_at) : new Date()
-    if (o.sla_deadline && completion <= parseISO(o.sla_deadline)) slaDataMap[d].met++
+    if (o.status === 'concluído' && o.sla_deadline) {
+      const d = format(parseISO(o.created), 'MMM dd')
+      if (!slaDataMap[d]) slaDataMap[d] = { total: 0, met: 0 }
+      slaDataMap[d].total++
+      const completion = o.finished_at ? parseISO(o.finished_at) : parseISO(o.updated)
+      if (completion <= parseISO(o.sla_deadline)) slaDataMap[d].met++
+    }
   })
   const slaChartData = Object.entries(slaDataMap)
     .map(([date, vals]) => ({
@@ -37,44 +37,18 @@ export function OperationalPanel({ metrics, orders }: any) {
       x: o.lng,
       y: o.lat,
       z: 1,
-      name: o.region || 'Desconhecida',
+      name: o.region || o.customer_name || 'Desconhecida',
     }))
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPI
-          title="SLA Cumprido"
-          value={`${(metrics.slaFulfillment * 100).toFixed(1)}%`}
-          icon={<Activity />}
-          alert={metrics.slaFulfillment < 0.8}
-        />
-        <KPI
-          title="Latência de Contato"
-          value={`${metrics.firstContactLatency.toFixed(1)}h`}
-          icon={<Clock />}
-        />
-        <KPI
-          title="Taxa de Retrabalho"
-          value={`${(metrics.reworkRate * 100).toFixed(1)}%`}
-          icon={<Wrench />}
-          alert={metrics.reworkRate > 0.08}
-        />
-        <KPI
-          title="Ocupação (Capacidade)"
-          value={`${(metrics.occupancy * 100).toFixed(1)}%`}
-          icon={<BarChart2 />}
-          alert={metrics.occupancy > 0.95}
-        />
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Cumprimento de SLA ao Longo do Tempo</CardTitle>
+            <CardTitle>Evolução de Cumprimento de SLA</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[350px]">
               <ChartContainer config={{ sla: { label: 'SLA %', color: 'hsl(var(--primary))' } }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={slaChartData}>
@@ -86,8 +60,9 @@ export function OperationalPanel({ metrics, orders }: any) {
                       type="monotone"
                       dataKey="sla"
                       stroke="var(--color-sla)"
-                      strokeWidth={2}
+                      strokeWidth={3}
                       dot={{ r: 4 }}
+                      activeDot={{ r: 6 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -98,53 +73,47 @@ export function OperationalPanel({ metrics, orders }: any) {
 
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Densidade de Chamados Geográfica</CardTitle>
+            <CardTitle>Mapa de Calor Geográfico por Serviço</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              <ChartContainer
-                config={{ z: { label: 'Ocorrências', color: 'hsl(var(--primary))' } }}
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                    <CartesianGrid />
-                    <XAxis
-                      type="number"
-                      dataKey="x"
-                      name="Longitude"
-                      domain={['auto', 'auto']}
-                      hide
-                    />
-                    <YAxis
-                      type="number"
-                      dataKey="y"
-                      name="Latitude"
-                      domain={['auto', 'auto']}
-                      hide
-                    />
-                    <ZAxis type="number" dataKey="z" range={[50, 400]} />
-                    <ChartTooltip
-                      cursor={{ strokeDasharray: '3 3' }}
-                      content={({ payload }) => {
-                        if (payload && payload.length) {
-                          return (
-                            <div className="bg-white p-2 border shadow-sm rounded text-sm">
-                              {payload[0].payload.name}
-                            </div>
-                          )
-                        }
-                        return null
-                      }}
-                    />
-                    <Scatter
-                      name="Chamados"
-                      data={heatmapData}
-                      fill="var(--color-z)"
-                      opacity={0.6}
-                    />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+            <div className="h-[350px] relative rounded-md overflow-hidden bg-slate-100 border">
+              <img
+                src="https://img.usecurling.com/p/800/400?q=map&color=gray"
+                alt="Map Background"
+                className="absolute inset-0 w-full h-full object-cover opacity-60 pointer-events-none"
+              />
+              <div className="absolute inset-0">
+                <ChartContainer
+                  config={{ z: { label: 'Ocorrências', color: 'hsl(var(--destructive))' } }}
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                      <XAxis type="number" dataKey="x" domain={['auto', 'auto']} hide />
+                      <YAxis type="number" dataKey="y" domain={['auto', 'auto']} hide />
+                      <ZAxis type="number" dataKey="z" range={[50, 400]} />
+                      <ChartTooltip
+                        cursor={{ strokeDasharray: '3 3' }}
+                        content={({ payload }) => {
+                          if (payload && payload.length) {
+                            return (
+                              <div className="bg-white p-2 border shadow-sm rounded text-sm font-medium z-50">
+                                {payload[0].payload.name}
+                              </div>
+                            )
+                          }
+                          return null
+                        }}
+                      />
+                      <Scatter
+                        name="Chamados"
+                        data={heatmapData}
+                        fill="var(--color-z)"
+                        opacity={0.6}
+                      />
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </div>
             </div>
           </CardContent>
         </Card>

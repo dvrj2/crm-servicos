@@ -164,3 +164,16 @@ export interface ServiceOrderChecklistItem {
   created: string
   updated: string
 }
+
+export interface Financial {
+  id: string
+  execution: string
+  final_value?: number
+  payment_status?: string
+  payment_method?: string
+  average_ticket?: number
+  actual_margin?: number
+  is_recurring?: boolean
+  created: string
+  updated: string
+}
