@@ -2,18 +2,32 @@ migrate(
   (app) => {
     const usersCol = app.findCollectionByNameOrId('users')
 
-    let adminId = null
+    let tech1Id = null
+    let tech2Id = null
     try {
-      const admin = app.findAuthRecordByEmail('users', 'valimreis@gmail.com')
-      adminId = admin.id
+      const tech1 = app.findAuthRecordByEmail('users', 'valimreis@gmail.com')
+      tech1Id = tech1.id
     } catch (_) {
-      const admin = new Record(usersCol)
-      admin.setEmail('valimreis@gmail.com')
-      admin.setPassword('Skip@Pass')
-      admin.setVerified(true)
-      admin.set('name', 'Admin Valim')
-      app.save(admin)
-      adminId = admin.id
+      const tech1 = new Record(usersCol)
+      tech1.setEmail('valimreis@gmail.com')
+      tech1.setPassword('Skip@Pass')
+      tech1.setVerified(true)
+      tech1.set('name', 'Admin Valim')
+      app.save(tech1)
+      tech1Id = tech1.id
+    }
+
+    try {
+      const tech2 = app.findAuthRecordByEmail('users', 'tech2@example.com')
+      tech2Id = tech2.id
+    } catch (_) {
+      const tech2 = new Record(usersCol)
+      tech2.setEmail('tech2@example.com')
+      tech2.setPassword('Skip@Pass')
+      tech2.setVerified(true)
+      tech2.set('name', 'Técnico Secundário')
+      app.save(tech2)
+      tech2Id = tech2.id
     }
 
     const customersCol = app.findCollectionByNameOrId('customers')
@@ -22,6 +36,8 @@ migrate(
       { name: 'João Residencial', phone: '11999999991', tipo_cliente: 'residencial' },
       { name: 'Empresa Comercial', phone: '11999999992', tipo_cliente: 'comercial' },
       { name: 'Fábrica Industrial', phone: '11999999993', tipo_cliente: 'industrial' },
+      { name: 'Condomínio das Flores', phone: '11999999994', tipo_cliente: 'comercial' },
+      { name: 'Maria da Silva', phone: '11999999995', tipo_cliente: 'residencial' },
     ]
 
     const customerIds = []
@@ -42,12 +58,10 @@ migrate(
     }
 
     const soCol = app.findCollectionByNameOrId('service_orders')
-    const quotesCol = app.findCollectionByNameOrId('quotes')
-    const apptsCol = app.findCollectionByNameOrId('appointments')
     const finsCol = app.findCollectionByNameOrId('financials')
 
     const now = new Date()
-    const date5DaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString()
+    const getPastDate = (days) => new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString()
 
     const ordersData = [
       {
@@ -60,6 +74,8 @@ migrate(
         actual_margin: 28,
         is_recurring: false,
         payment_link: 'https://pay.example.com/1',
+        tech_idx: 0,
+        days_ago: 5,
       },
       {
         customer_idx: 1,
@@ -71,6 +87,8 @@ migrate(
         actual_margin: 35,
         is_recurring: true,
         payment_link: 'https://pay.example.com/2',
+        tech_idx: 1,
+        days_ago: 2,
       },
       {
         customer_idx: 2,
@@ -82,9 +100,11 @@ migrate(
         actual_margin: 15,
         is_recurring: false,
         payment_link: 'https://pay.example.com/3',
+        tech_idx: 0,
+        days_ago: 1,
       },
       {
-        customer_idx: 1,
+        customer_idx: 3,
         service_type: 'Limpeza de Filtros',
         status: 'concluído',
         payment_status: 'pendente',
@@ -93,9 +113,11 @@ migrate(
         actual_margin: 30,
         is_recurring: true,
         payment_link: 'https://pay.example.com/4',
+        tech_idx: 1,
+        days_ago: 10,
       },
       {
-        customer_idx: 0,
+        customer_idx: 4,
         service_type: 'Troca de Peças',
         status: 'concluído',
         payment_status: 'vencido',
@@ -104,8 +126,77 @@ migrate(
         actual_margin: 10,
         is_recurring: false,
         payment_link: 'https://pay.example.com/5',
+        tech_idx: 0,
+        days_ago: 15,
+      },
+      {
+        customer_idx: 0,
+        service_type: 'Manutenção Preventiva',
+        status: 'concluído',
+        payment_status: 'pago',
+        final_value: 350,
+        planned_margin: 40,
+        actual_margin: 42,
+        is_recurring: true,
+        payment_link: 'https://pay.example.com/6',
+        tech_idx: 1,
+        days_ago: 8,
+      },
+      {
+        customer_idx: 1,
+        service_type: 'Instalação Ar-Condicionado',
+        status: 'concluído',
+        payment_status: 'vencido',
+        final_value: 1200,
+        planned_margin: 25,
+        actual_margin: 20,
+        is_recurring: false,
+        payment_link: 'https://pay.example.com/7',
+        tech_idx: 0,
+        days_ago: 20,
+      },
+      {
+        customer_idx: 2,
+        service_type: 'Limpeza de Filtros',
+        status: 'concluído',
+        payment_status: 'pago',
+        final_value: 450,
+        planned_margin: 30,
+        actual_margin: 32,
+        is_recurring: true,
+        payment_link: 'https://pay.example.com/8',
+        tech_idx: 1,
+        days_ago: 3,
+      },
+      {
+        customer_idx: 3,
+        service_type: 'Reparo de Máquina',
+        status: 'concluído',
+        payment_status: 'pago',
+        final_value: 2800,
+        planned_margin: 20,
+        actual_margin: 22,
+        is_recurring: false,
+        payment_link: 'https://pay.example.com/9',
+        tech_idx: 0,
+        days_ago: 4,
+      },
+      {
+        customer_idx: 4,
+        service_type: 'Troca de Peças',
+        status: 'concluído',
+        payment_status: 'pendente',
+        final_value: 900,
+        planned_margin: 35,
+        actual_margin: 30,
+        is_recurring: false,
+        payment_link: 'https://pay.example.com/10',
+        tech_idx: 1,
+        days_ago: 6,
       },
     ]
+
+    const techs = [tech1Id, tech2Id]
 
     for (let i = 0; i < ordersData.length; i++) {
       const oData = ordersData[i]
@@ -123,12 +214,12 @@ migrate(
         so.set('customer', customerIds[oData.customer_idx])
         so.set('customer_name', customersData[oData.customer_idx].name)
         so.set('service_type', oData.service_type)
-        so.set('status', 'pendente') // bypass hook validation temporariamente
+        so.set('status', oData.status)
         so.set('urgency', 'média')
-        so.set('sla_deadline', date5DaysAgo)
-        so.set('scheduled_date', date5DaysAgo)
-        so.set('finished_at', date5DaysAgo)
-        so.set('technician', adminId)
+        so.set('sla_deadline', getPastDate(oData.days_ago))
+        so.set('scheduled_date', getPastDate(oData.days_ago))
+        so.set('finished_at', getPastDate(oData.days_ago))
+        so.set('technician', techs[oData.tech_idx])
         so.set('payment_status', oData.payment_status)
         so.set('final_value', oData.final_value)
         so.set('planned_margin', oData.planned_margin)
@@ -138,45 +229,30 @@ migrate(
         app.save(so)
         soId = so.id
 
-        if (oData.status === 'concluído') {
-          app
-            .db()
-            .newQuery("UPDATE service_orders SET status = 'concluído' WHERE id = {:id}")
-            .bind({ id: soId })
-            .execute()
-        }
-
+        const quotesCol = app.findCollectionByNameOrId('quotes')
         const quote = new Record(quotesCol)
         quote.set('service_order', soId)
-        quote.set('estimated_cost', oData.final_value * 0.7)
-        quote.set('suggested_margin', oData.planned_margin)
         quote.set('status', 'approved')
         app.save(quote)
 
+        const apptsCol = app.findCollectionByNameOrId('appointments')
         const appt = new Record(apptsCol)
         appt.set('quote', quote.id)
-        appt.set('technician', adminId)
-        appt.set('start_time', date5DaysAgo)
-        appt.set('operation_status', 'agendado') // bypass hook validation
+        appt.set('technician', techs[oData.tech_idx])
+        appt.set('operation_status', 'concluido')
         app.save(appt)
 
-        app
-          .db()
-          .newQuery("UPDATE appointments SET operation_status = 'concluido' WHERE id = {:id}")
-          .bind({ id: appt.id })
-          .execute()
-
         const execId = $security.randomString(15)
+        const dateStr = getPastDate(oData.days_ago).replace('T', ' ')
         app
           .db()
           .newQuery(
-            `INSERT INTO executions (id, appointment, signature, materials_used, is_rework, created, updated) VALUES ({:id}, {:appt}, '', {:mat}, 0, {:now}, {:now})`,
+            `INSERT INTO executions (id, appointment, signature, materials_used, is_rework, created, updated) VALUES ({:id}, {:appt}, '', '', 0, {:now}, {:now})`,
           )
           .bind({
             id: execId,
             appt: appt.id,
-            mat: JSON.stringify([{ name: 'Parafuso', quantity: 2 }]),
-            now: date5DaysAgo.replace('T', ' '),
+            now: dateStr,
           })
           .execute()
 
@@ -194,13 +270,9 @@ migrate(
     }
   },
   (app) => {
-    const links = [
-      'https://pay.example.com/1',
-      'https://pay.example.com/2',
-      'https://pay.example.com/3',
-      'https://pay.example.com/4',
-      'https://pay.example.com/5',
-    ]
+    const links = []
+    for (let i = 1; i <= 10; i++) links.push(`https://pay.example.com/${i}`)
+
     for (const link of links) {
       try {
         const so = app.findFirstRecordByData('service_orders', 'payment_link', link)

@@ -65,6 +65,10 @@ export default function Finance() {
     loadData()
   })
 
+  useRealtime('financials', () => {
+    loadData()
+  })
+
   const serviceTypes = useMemo(() => {
     const types = new Set(orders.map((o) => o.service_type).filter(Boolean))
     return Array.from(types)
@@ -87,7 +91,14 @@ export default function Finance() {
   const totalRevenue = filteredOrders.reduce((acc, o) => acc + (o.final_value || 0), 0)
   const ticketMedio = filteredOrders.length ? totalRevenue / filteredOrders.length : 0
 
-  const inadimplentes = filteredOrders.filter((o) => o.payment_status === 'vencido')
+  const recorrentes = filteredOrders.filter((o) => o.is_recurring)
+  const recorrenciaPct = filteredOrders.length
+    ? (recorrentes.length / filteredOrders.length) * 100
+    : 0
+
+  const inadimplentes = filteredOrders.filter(
+    (o) => o.payment_status === 'vencido' || o.payment_status === 'pendente',
+  )
   const inadimplentesValue = inadimplentes.reduce((acc, o) => acc + (o.final_value || 0), 0)
   const inadimplentesCount = inadimplentes.length
 
@@ -141,7 +152,7 @@ export default function Finance() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Faturamento Total</CardTitle>
@@ -164,17 +175,28 @@ export default function Finance() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-red-100">
+        <Card className="shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-red-700">Inadimplentes</CardTitle>
-            <AlertCircle className="w-4 h-4 text-red-600" />
+            <CardTitle className="text-sm font-medium">Recorrência</CardTitle>
+            <RefreshCw className="w-4 h-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+            <div className="text-2xl font-bold text-slate-900">{recorrenciaPct.toFixed(1)}%</div>
+            <p className="text-xs text-slate-500 mt-1">{recorrentes.length} OS(s) recorrentes</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border-amber-200">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-amber-800">Inadimplentes</CardTitle>
+            <AlertCircle className="w-4 h-4 text-amber-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-700">
               {formatCurrency(inadimplentesValue)}
             </div>
-            <p className="text-xs text-red-600/80 mt-1">
-              {inadimplentesCount} OS(s) com pagamento vencido
+            <p className="text-xs text-amber-700/80 mt-1">
+              {inadimplentesCount} OS(s) pendentes ou vencidas
             </p>
           </CardContent>
         </Card>
