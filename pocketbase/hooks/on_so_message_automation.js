@@ -59,6 +59,15 @@ onRecordAfterCreateSuccess((e) => {
           replyMsg.set('service_order', soId)
           replyMsg.set('message', 'Aprovação recebida com sucesso. O seu serviço foi agendado!')
           $app.save(replyMsg)
+
+          try {
+            const log = new Record($app.findCollectionByNameOrId('automation_logs'))
+            log.set('webhook_type', 'AUTO_APPROVAL')
+            log.set('service_order', soId)
+            log.set('action_taken', 'Automatically approved quote and scheduled via message intent')
+            log.set('result', 'Success')
+            $app.save(log)
+          } catch (eLog) {}
         } catch (err) {
           console.log('Approval automation failed:', err.message)
         }

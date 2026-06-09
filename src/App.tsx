@@ -14,6 +14,7 @@ import Reports from './pages/Reports'
 import Technicians from './pages/Technicians'
 import Finance from './pages/Finance'
 import Indicators from './pages/Indicators'
+import LogsPage from './pages/Logs'
 import Layout from './components/Layout'
 import { AuthProvider } from './hooks/use-auth'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/technicians" element={<Technicians />} />
               <Route path="/finance" element={<Finance />} />
               <Route path="/indicators" element={<Indicators />} />
+              <Route path="/logs" element={<LogsPage />} />
             </Route>
           </Route>
 

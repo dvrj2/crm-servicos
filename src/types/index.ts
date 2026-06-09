@@ -165,6 +165,20 @@ export interface ServiceOrderChecklistItem {
   updated: string
 }
 
+export interface AutomationLog {
+  id: string
+  webhook_type: string
+  service_order?: string
+  action_taken: string
+  result: string
+  details?: any
+  created: string
+  updated: string
+  expand?: {
+    service_order?: ServiceOrder
+  }
+}
+
 export interface Financial {
   id: string
   execution: string

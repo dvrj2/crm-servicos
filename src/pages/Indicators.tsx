@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle, Loader2, Activity, BarChart2, Wrench, Wallet, PieChart } from 'lucide-react'
 import { KPI } from '@/components/indicators/KPI'
+import { Link } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
 
 export default function IndicatorsPage() {
   const [orders, setOrders] = useState<ServiceOrder[]>([])
@@ -73,6 +75,9 @@ export default function IndicatorsPage() {
             Visão consolidada de desempenho operacional, comercial e financeiro.
           </p>
         </div>
+        <Link to="/logs">
+          <Button variant="outline">Logs de Automação</Button>
+        </Link>
       </div>
 
       <FiltersBar filters={filters} setFilters={setFilters} users={users} orders={orders} />

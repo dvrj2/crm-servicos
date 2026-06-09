@@ -73,11 +73,15 @@ onRecordAfterCreateSuccess((e) => {
 
   if (soId) {
     try {
+      const so = $app.findRecordById('service_orders', soId)
+      const report = so.getString('technical_report') || 'Laudo não disponível.'
+      const paymentLink = so.getString('payment_link') || 'Link de pagamento não disponível.'
+
       const msg = new Record($app.findCollectionByNameOrId('service_order_messages'))
       msg.set('service_order', soId)
       msg.set(
         'message',
-        `Faturamento: O seu serviço foi concluído! O valor total do trabalho foi de R$ ${fin.get('final_value') || 0}. O link ou orientações para pagamento serão enviados em seguida.`,
+        `Serviço concluído!\n\nLaudo Técnico:\n${report}\n\nFaturamento: O valor total do trabalho foi de R$ ${fin.get('final_value') || 0}.\n\nPara realizar o pagamento, acesse:\n${paymentLink}`,
       )
       $app.save(msg)
     } catch (err) {}
@@ -96,6 +100,9 @@ onRecordAfterUpdateSuccess((e) => {
       try {
         const so = $app.findRecordById('service_orders', soId)
         so.set('payment_status', 'pago')
+        if (so.getString('status') !== 'concluído') {
+          so.set('status', 'concluído')
+        }
         $app.save(so)
 
         const msg = new Record($app.findCollectionByNameOrId('service_order_messages'))
