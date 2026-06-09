@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { CalendarDays, Clock, MapPin, Wrench, Trash2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { updateOrder, deleteOrder } from '@/services/api'
 import { useToast } from '@/hooks/use-toast'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -34,6 +35,7 @@ interface OrderDetailModalProps {
 export function OrderDetailModal({ order, technicians, onClose, onUpdate }: OrderDetailModalProps) {
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   // Local state for edits
   const [status, setStatus] = useState<OrderStatus>('novo')
@@ -230,7 +232,10 @@ export function OrderDetailModal({ order, technicians, onClose, onUpdate }: Orde
           >
             <Trash2 className="w-4 h-4 mr-2" /> Excluir
           </Button>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
+            <Button variant="secondary" onClick={() => navigate(`/execution/${order.id}`)}>
+              Executar Serviço
+            </Button>
             <Button variant="outline" onClick={onClose} disabled={loading}>
               Cancelar
             </Button>

@@ -8,6 +8,12 @@ export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
   })) as ServiceOrder[]
 }
 
+export const getServiceOrder = async (id: string): Promise<ServiceOrder> => {
+  return (await pb.collection('service_orders').getOne(id, {
+    expand: 'technician',
+  })) as ServiceOrder
+}
+
 export const updateOrderStatus = async (id: string, status: string): Promise<ServiceOrder> => {
   return (await pb.collection('service_orders').update(id, { status })) as ServiceOrder
 }

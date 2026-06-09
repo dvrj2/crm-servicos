@@ -73,9 +73,16 @@ export function KanbanCard({ order, onClick }: KanbanCardProps) {
       <CardContent className="p-3">
         <div className="flex justify-between items-start mb-2">
           <div className="flex-1">
-            <h4 className="font-semibold text-sm leading-tight mb-1 text-slate-900">
-              {order.customer_name}
-            </h4>
+            <div className="flex items-center gap-1.5 mb-1">
+              <h4 className="font-semibold text-sm leading-tight text-slate-900">
+                {order.customer_name}
+              </h4>
+              {order.is_rework && (
+                <Badge variant="destructive" className="px-1 py-0 text-[9px] h-4 uppercase">
+                  Retrabalho
+                </Badge>
+              )}
+            </div>
             <p className="text-xs text-slate-500 line-clamp-1">{order.service_type}</p>
           </div>
           <Badge

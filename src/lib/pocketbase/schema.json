@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T12:33:51.300Z",
+  "generatedAt": "2026-06-09T12:44:27.099Z",
   "collections": [
     {
       "name": "users",
@@ -182,6 +182,73 @@
           "type": "number",
           "required": false,
           "system": false
+        },
+        {
+          "name": "started_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "finished_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_pause_time_minutes",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "materials_used",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "technical_observations",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "signature",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_rework",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_distance_km",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "operational_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["pending", "en_route", "in_progress", "paused", "completed"]
+        },
+        {
+          "name": "last_paused_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "actual_duration_hours",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -192,6 +259,101 @@
         "CREATE INDEX `idx_so_lng` ON `service_orders` (lng)",
         "CREATE INDEX `idx_so_scheduled_date` ON `service_orders` (scheduled_date)"
       ]
+    },
+    {
+      "name": "service_order_photos",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "service_order",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "service_orders"
+        },
+        {
+          "name": "file",
+          "type": "file",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "stage",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["before", "after"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "service_order_checklist_items",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "service_order",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "service_orders"
+        },
+        {
+          "name": "task_description",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "is_completed",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
     }
   ]
 }

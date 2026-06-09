@@ -37,7 +37,38 @@ export interface ServiceOrder {
   estimated_travel_hours?: number
   lat?: number
   lng?: number
+  operational_status?: OperationalStatus
+  last_paused_at?: string
+  started_at?: string
+  finished_at?: string
+  total_pause_time_minutes?: number
+  materials_used?: string
+  technical_observations?: string
+  signature?: string
+  is_rework?: boolean
+  total_distance_km?: number
+  actual_duration_hours?: number
   expand?: {
     technician?: User
   }
+}
+
+export type OperationalStatus = 'pending' | 'en_route' | 'in_progress' | 'paused' | 'completed'
+
+export interface ServiceOrderPhoto {
+  id: string
+  service_order: string
+  file: string
+  stage: 'before' | 'after'
+  created: string
+  updated: string
+}
+
+export interface ServiceOrderChecklistItem {
+  id: string
+  service_order: string
+  task_description: string
+  is_completed: boolean
+  created: string
+  updated: string
 }

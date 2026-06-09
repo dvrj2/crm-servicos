@@ -6,6 +6,7 @@ import Index from './pages/Index'
 import Login from './pages/Login'
 import NotFound from './pages/NotFound'
 import Schedule from './pages/Schedule'
+import Execution from './pages/Execution'
 import Layout from './components/Layout'
 import { AuthProvider } from './hooks/use-auth'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -23,6 +24,7 @@ const App = () => (
             <Route element={<Layout />}>
               <Route path="/" element={<Index />} />
               <Route path="/schedule" element={<Schedule />} />
+              <Route path="/execution/:id" element={<Execution />} />
             </Route>
           </Route>
 
