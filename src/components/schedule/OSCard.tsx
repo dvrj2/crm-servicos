@@ -56,7 +56,7 @@ export function OSCard({ os, conflict }: { os: ServiceOrder; conflict?: boolean 
         </span>
         <span className="flex items-center gap-1">
           <MapPin className="w-3 h-3 text-orange-500" />
-          {os.estimated_travel_hours?.toFixed(1)}h
+          {((os.displacement_min || 0) / 60).toFixed(1)}h
         </span>
       </div>
     </div>

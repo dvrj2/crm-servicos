@@ -41,7 +41,13 @@ export function TimelineGrid({ techs, weekDates, orders, onDropOS }: Props) {
                 (() => {
                   const totalHoursAssigned = orders
                     .filter((o) => o.technician === tech.id)
-                    .reduce((acc, curr) => acc + (curr.predicted_duration_hours || 0), 0)
+                    .reduce(
+                      (acc, curr) =>
+                        acc +
+                        (curr.predicted_duration_hours || 0) +
+                        (curr.displacement_min || 0) / 60,
+                      0,
+                    )
                   const totalCapacity = (tech.capacity_diaria_hours || 8) * weekDates.length
                   const occupancy =
                     totalCapacity > 0 ? (totalHoursAssigned / totalCapacity) * 100 : 0

@@ -25,8 +25,34 @@ export interface User {
 
 export type PaymentStatus = 'pago' | 'pendente' | 'vencido'
 
+export interface Quote {
+  id: string
+  service_order: string
+  estimated_hours?: number
+  estimated_cost?: number
+  suggested_margin?: number
+  status?: string
+  created: string
+  updated: string
+  suggested_price?: number
+}
+
+export interface Appointment {
+  id: string
+  quote?: string
+  technician: string
+  start_time: string
+  predicted_duration?: number
+  travel_time_min?: number
+  operation_status?: string
+  created: string
+  updated: string
+}
+
 export interface ServiceOrder {
   id: string
+  _apptId?: string
+  _quoteId?: string
   customer_name: string
   sla_deadline_minutes?: number
   final_value?: number
