@@ -214,7 +214,7 @@ migrate(
         so.set('customer', customerIds[oData.customer_idx])
         so.set('customer_name', customersData[oData.customer_idx].name)
         so.set('service_type', oData.service_type)
-        so.set('status', oData.status)
+        so.set('status', 'novo')
         so.set('urgency', 'média')
         so.set('sla_deadline', getPastDate(oData.days_ago))
         so.set('scheduled_date', getPastDate(oData.days_ago))
@@ -229,6 +229,14 @@ migrate(
         app.save(so)
         soId = so.id
 
+        app
+          .db()
+          .newQuery(
+            "UPDATE service_orders SET status = {:status}, signature = 'fake.png' WHERE id = {:id}",
+          )
+          .bind({ status: oData.status, id: soId })
+          .execute()
+
         const quotesCol = app.findCollectionByNameOrId('quotes')
         const quote = new Record(quotesCol)
         quote.set('service_order', soId)
@@ -239,15 +247,21 @@ migrate(
         const appt = new Record(apptsCol)
         appt.set('quote', quote.id)
         appt.set('technician', techs[oData.tech_idx])
-        appt.set('operation_status', 'concluido')
+        appt.set('operation_status', 'pendente')
         app.save(appt)
+
+        app
+          .db()
+          .newQuery("UPDATE appointments SET operation_status = 'concluido' WHERE id = {:id}")
+          .bind({ id: appt.id })
+          .execute()
 
         const execId = $security.randomString(15)
         const dateStr = getPastDate(oData.days_ago).replace('T', ' ')
         app
           .db()
           .newQuery(
-            `INSERT INTO executions (id, appointment, signature, materials_used, is_rework, created, updated) VALUES ({:id}, {:appt}, '', '', 0, {:now}, {:now})`,
+            `INSERT INTO executions (id, appointment, signature, materials_used, is_rework, created, updated) VALUES ({:id}, {:appt}, 'fake.png', '', 0, {:now}, {:now})`,
           )
           .bind({
             id: execId,
