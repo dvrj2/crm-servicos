@@ -13,6 +13,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { ServiceOrder, AutomationLog } from '@/types'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import {
   createSimulatedOS,
   simulateQuoteApproval,
@@ -85,8 +86,10 @@ export default function Simulator() {
       setOs(newOs)
       setActiveStep(2)
       toast.success('Mensagem simulada com sucesso')
-    } catch (e) {
-      toast.error('Erro ao simular mensagem')
+    } catch (e: any) {
+      toast.error('Erro ao simular mensagem', {
+        description: getErrorMessage(e),
+      })
     }
   }
 
@@ -100,54 +103,92 @@ export default function Simulator() {
         files = [new File([blob], 'foto.jpg', { type: 'image/jpeg' })]
       } else {
         files = [
-          new File([''], 'foto1.jpg', { type: 'image/jpeg' }),
-          new File([''], 'foto2.jpg', { type: 'image/jpeg' }),
-          new File([''], 'foto3.jpg', { type: 'image/jpeg' }),
+          new File(['dummy photo 1'], 'foto1.jpg', { type: 'image/jpeg' }),
+          new File(['dummy photo 2'], 'foto2.jpg', { type: 'image/jpeg' }),
+          new File(['dummy photo 3'], 'foto3.jpg', { type: 'image/jpeg' }),
         ]
       }
       await uploadInitialPhotos(osId!, files)
       setActiveStep(3)
       toast.success('Fotos simuladas enviadas com sucesso')
-    } catch (e) {
-      toast.error('Erro ao simular foto')
+    } catch (e: any) {
+      toast.error('Erro ao simular foto', {
+        description: getErrorMessage(e),
+      })
     }
   }
 
   const handleApprove = async () => {
-    await simulateQuoteApproval(osId!)
-    setActiveStep(4)
-    toast.success('Orçamento aprovado simulado')
+    try {
+      await simulateQuoteApproval(osId!)
+      setActiveStep(4)
+      toast.success('Orçamento aprovado simulado')
+    } catch (e: any) {
+      toast.error('Erro ao aprovar orçamento', {
+        description: getErrorMessage(e),
+      })
+    }
   }
 
   const handleEnRoute = async () => {
-    await updateOperationalStatus(osId!, 'en_route', 'a_caminho')
-    setExecStatus(1)
+    try {
+      await updateOperationalStatus(osId!, 'en_route', 'a_caminho')
+      setExecStatus(1)
+    } catch (e: any) {
+      toast.error('Erro ao atualizar status', {
+        description: getErrorMessage(e),
+      })
+    }
   }
 
   const handleInProgress = async () => {
-    await updateOperationalStatus(osId!, 'in_progress', 'em_execucao')
-    setExecStatus(2)
+    try {
+      await updateOperationalStatus(osId!, 'in_progress', 'em_execucao')
+      setExecStatus(2)
+    } catch (e: any) {
+      toast.error('Erro ao atualizar status', {
+        description: getErrorMessage(e),
+      })
+    }
   }
 
   const handleChecklist = async () => {
-    await simulateChecklist(osId!)
-    const mockFiles = [new File([''], 'after.jpg', { type: 'image/jpeg' })]
-    await uploadExecutionPhotos(osId!, mockFiles)
-    setExecStatus(3)
-    setActiveStep(5)
-    toast.success('Checklist e execução finalizados')
+    try {
+      await simulateChecklist(osId!)
+      const mockFiles = [new File(['dummy execution photo'], 'after.jpg', { type: 'image/jpeg' })]
+      await uploadExecutionPhotos(osId!, mockFiles)
+      setExecStatus(3)
+      setActiveStep(5)
+      toast.success('Checklist e execução finalizados')
+    } catch (e: any) {
+      toast.error('Erro ao finalizar checklist', {
+        description: getErrorMessage(e),
+      })
+    }
   }
 
   const handleFinalize = async () => {
-    await finalizeSimulation(osId!)
-    setActiveStep(6)
-    toast.success('Faturamento e relatório gerados')
+    try {
+      await finalizeSimulation(osId!)
+      setActiveStep(6)
+      toast.success('Faturamento e relatório gerados')
+    } catch (e: any) {
+      toast.error('Erro ao gerar faturamento', {
+        description: getErrorMessage(e),
+      })
+    }
   }
 
   const handlePayment = async () => {
-    await confirmPayment(osId!)
-    setActiveStep(7)
-    toast.success('Pagamento confirmado via webhook simulado')
+    try {
+      await confirmPayment(osId!)
+      setActiveStep(7)
+      toast.success('Pagamento confirmado via webhook simulado')
+    } catch (e: any) {
+      toast.error('Erro ao confirmar pagamento', {
+        description: getErrorMessage(e),
+      })
+    }
   }
 
   const handleReset = () => {
@@ -169,7 +210,9 @@ export default function Simulator() {
       setBulkResults(res.results)
       toast.success('Simulação em massa concluída!')
     } catch (e: any) {
-      toast.error(e.message || 'Erro na simulação')
+      toast.error('Erro na simulação', {
+        description: getErrorMessage(e),
+      })
     } finally {
       setRunningBulk(false)
     }

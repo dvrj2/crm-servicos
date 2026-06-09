@@ -7,17 +7,13 @@ export const createSimulatedLog = async (
   result: string,
   details: any = {},
 ) => {
-  try {
-    return await pb.collection('automation_logs').create({
-      webhook_type: 'simulator',
-      service_order: osId,
-      action_taken: action,
-      result: result,
-      details: details,
-    })
-  } catch (err) {
-    console.error('Failed to create log', err)
-  }
+  return await pb.collection('automation_logs').create({
+    webhook_type: 'simulator',
+    service_order: osId,
+    action_taken: action,
+    result: result,
+    details: details,
+  })
 }
 
 export const createSimulatedOS = async (text: string): Promise<ServiceOrder> => {
@@ -180,12 +176,7 @@ export const confirmPayment = async (osId: string) => {
 }
 
 export const simulateBulkAssignment = async () => {
-  const techs = await pb.collection('users').getFullList()
-  const activeTechs = techs.slice(0, 3)
-
-  if (activeTechs.length < 3) {
-    throw new Error('Necessário pelo menos 3 técnicos cadastrados para a simulação.')
-  }
+  let techs = await pb.collection('users').getFullList()
 
   const capacities = [8, 6, 4]
   const locations = [
@@ -194,15 +185,43 @@ export const simulateBulkAssignment = async () => {
     { lat: -23.5, lng: -46.6 }, // Norte
   ]
 
-  for (let i = 0; i < 3; i++) {
-    await pb.collection('users').update(activeTechs[i].id, {
+  // Update existing users where permitted (usually just the logged-in user due to API rules)
+  for (let i = 0; i < techs.length; i++) {
+    if (i >= 3) break
+    try {
+      await pb.collection('users').update(techs[i].id, {
+        capacity_diaria_hours: capacities[i],
+        occupancy_current_hours: 0,
+        current_lat: locations[i].lat,
+        current_lng: locations[i].lng,
+        status: 'disponível',
+      })
+    } catch (e) {
+      console.warn('Could not update existing user, keeping original values.', e)
+    }
+  }
+
+  // Create new users if we don't have 3, setting their values on creation to comply with API rules
+  while (techs.length < 3) {
+    const i = techs.length
+    const email = `tech_sim_${Date.now()}_${i}@example.com`
+    const password = 'password123'
+    const newTech = await pb.collection('users').create({
+      email,
+      password,
+      passwordConfirm: password,
+      name: `Técnico Simulação ${i + 1}`,
+      status: 'disponível',
+      operational_status: 'available',
       capacity_diaria_hours: capacities[i],
       occupancy_current_hours: 0,
       current_lat: locations[i].lat,
       current_lng: locations[i].lng,
-      status: 'disponível',
     })
+    techs.push(newTech)
   }
+
+  const activeTechs = techs.slice(0, 3)
 
   const orders = []
   for (let i = 0; i < 10; i++) {
