@@ -1,3 +1,36 @@
+onRecordValidate((e) => {
+  const msg = e.record
+  if (!msg.id) {
+    const sender = msg.getString('sender')
+    const so = msg.getString('service_order')
+    const text = msg.getString('message')
+    if (so && text) {
+      const sixtySecAgo = new Date(Date.now() - 60000).toISOString()
+      try {
+        const query = sender
+          ? `service_order = '${so}' && sender = '${sender}' && message = '${text}' && created >= '${sixtySecAgo}'`
+          : `service_order = '${so}' && message = '${text}' && created >= '${sixtySecAgo}'`
+
+        const dups = $app.findRecordsByFilter('service_order_messages', query, '', 1, 0)
+        if (dups.length > 0) {
+          try {
+            const log = new Record($app.findCollectionByNameOrId('automation_logs'))
+            log.set('webhook_type', 'EXCEPTION')
+            log.set('service_order', so)
+            log.set('action_taken', 'Ignored duplicate message within 60s')
+            log.set('result', 'Success')
+            $app.save(log)
+          } catch (err) {}
+          throw new BadRequestError('Mensagem duplicada ignorada.')
+        }
+      } catch (err) {
+        if (err instanceof BadRequestError) throw err
+      }
+    }
+  }
+  e.next()
+}, 'service_order_messages')
+
 onRecordCreate((e) => {
   const msg = e.record
   if (!msg.get('service_order')) {

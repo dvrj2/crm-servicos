@@ -1,12 +1,50 @@
 onRecordValidate((e) => {
   const record = e.record
 
+  if (!record.id) {
+    const customer = record.getString('customer')
+    const serviceType = record.getString('service_type')
+    if (customer && serviceType) {
+      const fourHoursAgo = new Date(Date.now() - 4 * 3600000).toISOString()
+      try {
+        const duplicates = $app.findRecordsByFilter(
+          'service_orders',
+          `customer = '${customer}' && service_type = '${serviceType}' && created >= '${fourHoursAgo}'`,
+          '',
+          1,
+          0,
+        )
+        if (duplicates.length > 0) {
+          record.set('status', 'duplicado')
+          record.set('parent_order', duplicates[0].id)
+        }
+      } catch (_) {}
+    }
+  }
+
   if (record.getString('status') === 'concluído' || record.getString('status') === 'faturado') {
     if (!record.getString('signature')) {
       throw new BadRequestError('Não é possível concluir: falta assinatura do cliente.')
     }
+
     if (record.getBool('has_pending_checklist')) {
-      throw new BadRequestError('Não é possível concluir: checklist possui pendências.')
+      if (!record.getString('technical_observations')) {
+        throw new BadRequestError(
+          'Não é possível concluir: checklist possui pendências. Preencha as Observações Técnicas para justificar.',
+        )
+      } else {
+        try {
+          const log = new Record($app.findCollectionByNameOrId('automation_logs'))
+          log.set('webhook_type', 'EXCEPTION')
+          log.set('service_order', record.id)
+          log.set(
+            'action_taken',
+            'Bypassed pending checklist using technical observations fallback',
+          )
+          log.set('result', 'Fallback applied')
+          $app.save(log)
+        } catch (err) {}
+      }
     }
 
     try {

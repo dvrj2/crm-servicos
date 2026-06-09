@@ -70,7 +70,16 @@ export default function LogsPage() {
                     {format(parseISO(log.created), 'dd/MM/yyyy HH:mm:ss')}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{log.webhook_type}</Badge>
+                    <Badge
+                      variant="outline"
+                      className={
+                        log.webhook_type === 'EXCEPTION'
+                          ? 'border-red-200 bg-red-50 text-red-700'
+                          : ''
+                      }
+                    >
+                      {log.webhook_type}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     {log.expand?.service_order ? (

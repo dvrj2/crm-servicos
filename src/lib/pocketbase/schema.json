@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T20:19:02.627Z",
+  "generatedAt": "2026-06-09T20:27:48.581Z",
   "collections": [
     {
       "name": "users",
@@ -161,7 +161,9 @@
             "aprovado",
             "agendado",
             "executando",
-            "concluído"
+            "concluído",
+            "cancelado",
+            "duplicado"
           ]
         },
         {
@@ -414,6 +416,13 @@
           "type": "file",
           "required": false,
           "system": false
+        },
+        {
+          "name": "parent_order",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "service_orders"
         }
       ],
       "indexes": [

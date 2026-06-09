@@ -7,6 +7,8 @@ export type OrderStatus =
   | 'agendado'
   | 'executando'
   | 'concluído'
+  | 'cancelado'
+  | 'duplicado'
 
 export interface Customer {
   id: string
@@ -127,6 +129,7 @@ export interface ServiceOrder {
   displacement_min?: number
   technical_report?: string
   recurrence_config?: string
+  parent_order?: string
   expand?: {
     technician?: User
     customer?: Customer
