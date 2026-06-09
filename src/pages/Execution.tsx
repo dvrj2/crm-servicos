@@ -42,6 +42,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 export default function Execution() {
   const { id } = useParams()
@@ -197,9 +198,12 @@ export default function Execution() {
     !!execution?.signature &&
     !isRedrawing
 
+  const [errorSection, setErrorSection] = useState<
+    'checklist' | 'beforePhotos' | 'signature' | null
+  >(null)
+
   const handleFinish = async () => {
     if (!order || !order.started_at) return
-    if (!canFinish) return
 
     captureLocation()
 
@@ -208,27 +212,39 @@ export default function Execution() {
     const pauseMins = order.total_pause_time_minutes || 0
     const durationHours = (now - startedAt - pauseMins * 60000) / 3600000
 
-    await updateExecutionOrder(order.id, {
-      operational_status: 'completed',
-      status: 'concluído',
-      finished_at: new Date().toISOString(),
-      actual_duration_hours: durationHours,
-    })
-
-    if (appointment) {
-      await pb.collection('appointments').update(appointment.id, { operation_status: 'concluido' })
-    }
-
-    if (execution) {
-      await updateExecution(execution.id, {
-        materials_used: JSON.stringify(materials),
-        technical_report: observations,
+    try {
+      await updateExecutionOrder(order.id, {
+        operational_status: 'completed',
+        status: 'concluído',
+        finished_at: new Date().toISOString(),
+        actual_duration_hours: durationHours,
       })
-    }
 
-    if (user?.id) await pb.collection('users').update(user.id, { operational_status: 'available' })
-    toast({ title: 'Sucesso', description: 'Serviço concluído com sucesso.' })
-    navigate(`/report/${order.id}`)
+      if (appointment) {
+        await pb
+          .collection('appointments')
+          .update(appointment.id, { operation_status: 'concluido' })
+      }
+
+      if (execution) {
+        await updateExecution(execution.id, {
+          materials_used: JSON.stringify(materials),
+          technical_report: observations,
+        })
+      }
+
+      if (user?.id)
+        await pb.collection('users').update(user.id, { operational_status: 'available' })
+      toast({ title: 'Sucesso', description: 'Serviço concluído com sucesso.' })
+      setErrorSection(null)
+      navigate(`/report/${order.id}`)
+    } catch (e: any) {
+      const msg = getErrorMessage(e)
+      toast({ title: 'Erro de Validação', description: msg, variant: 'destructive' })
+      if (msg.includes('checklist')) setErrorSection('checklist')
+      else if (msg.includes('Antes')) setErrorSection('beforePhotos')
+      else if (msg.includes('assinatura')) setErrorSection('signature')
+    }
   }
 
   const handleDocsUpdate = async () => {
@@ -318,11 +334,7 @@ export default function Execution() {
               <Button variant="secondary" className="flex-1" onClick={handlePause}>
                 <Pause className="w-4 h-4 mr-2" /> Pausar
               </Button>
-              <Button
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50"
-                onClick={handleFinish}
-                disabled={!canFinish}
-              >
+              <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleFinish}>
                 <CheckSquare className="w-4 h-4 mr-2" /> Concluir
               </Button>
             </>
@@ -359,7 +371,7 @@ export default function Execution() {
         </DialogContent>
       </Dialog>
 
-      <Card>
+      <Card className={cn(errorSection === 'checklist' && 'ring-2 ring-red-500 animate-pulse')}>
         <CardHeader className="py-4">
           <CardTitle className="text-lg flex items-center gap-2">
             <CheckSquare className="w-5 h-5 text-blue-600" />
@@ -394,7 +406,9 @@ export default function Execution() {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
+        <Card
+          className={cn(errorSection === 'beforePhotos' && 'ring-2 ring-red-500 animate-pulse')}
+        >
           <CardHeader className="py-4">
             <CardTitle className="text-sm">
               Fotos "Antes" {beforePhotos.length === 0 && <span className="text-red-500">*</span>}
@@ -536,7 +550,12 @@ export default function Execution() {
             />
           </div>
 
-          <div className="pt-4 border-t space-y-3">
+          <div
+            className={cn(
+              'pt-4 border-t space-y-3 p-4 -mx-4 rounded-md transition-colors',
+              errorSection === 'signature' && 'ring-2 ring-red-500 bg-red-50 animate-pulse',
+            )}
+          >
             <label className="text-sm font-medium text-slate-700">
               Assinatura do Cliente{' '}
               {(!execution?.signature || isRedrawing) && <span className="text-red-500">*</span>}

@@ -389,7 +389,7 @@ export default function Simulator() {
                               )}
 
                               {step.id === 4 && (
-                                <div className="flex flex-col sm:flex-row gap-3">
+                                <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
                                   <Button
                                     variant={execStatus >= 1 ? 'secondary' : 'default'}
                                     disabled={execStatus >= 1}
@@ -410,6 +410,13 @@ export default function Simulator() {
                                     onClick={handleChecklist}
                                   >
                                     3. Preencher Checklist
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    disabled={execStatus < 2}
+                                    onClick={handleFinalize}
+                                  >
+                                    Tentar Concluir (Forçar Erro)
                                   </Button>
                                 </div>
                               )}

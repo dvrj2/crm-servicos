@@ -23,56 +23,78 @@ onRecordValidate((e) => {
   }
 
   if (record.getString('status') === 'concluído' || record.getString('status') === 'faturado') {
-    if (!record.getString('signature')) {
-      throw new BadRequestError('Não é possível concluir: falta assinatura do cliente.')
-    }
-
-    if (record.getBool('has_pending_checklist')) {
-      if (!record.getString('technical_observations')) {
-        throw new BadRequestError(
-          'Não é possível concluir: checklist possui pendências. Preencha as Observações Técnicas para justificar.',
-        )
-      } else {
-        try {
-          const log = new Record($app.findCollectionByNameOrId('automation_logs'))
-          log.set('webhook_type', 'EXCEPTION')
-          log.set('service_order', record.id)
-          log.set(
-            'action_taken',
-            'Bypassed pending checklist using technical observations fallback',
-          )
-          log.set('result', 'Fallback applied')
-          $app.save(log)
-        } catch (err) {}
-      }
-    }
-
+    let checklists = []
     try {
-      const photos = $app.findRecordsByFilter(
+      checklists = $app.findRecordsByFilter(
+        'service_order_checklist_items',
+        `service_order = '${record.id}'`,
+        '',
+        100,
+        0,
+      )
+    } catch (_) {}
+
+    if (checklists.length === 0) {
+      throw new BadRequestError('Erro: O checklist não foi iniciado ou não existe para esta ordem')
+    }
+
+    const incomplete = checklists.some((c) => !c.getBool('is_completed'))
+    if (incomplete) {
+      throw new BadRequestError('Erro: Existem itens pendentes no checklist')
+    }
+
+    let photos = []
+    try {
+      photos = $app.findRecordsByFilter(
         'service_order_photos',
         `service_order = '${record.id}'`,
         '',
         100,
         0,
       )
-      const hasBefore = photos.some((p) => p.getString('stage') === 'before')
-      const hasAfter = photos.some((p) => p.getString('stage') === 'after')
-      if (!hasBefore || !hasAfter) {
-        throw new BadRequestError(
-          'Não é possível concluir: exigido ao menos uma foto de Antes e Depois.',
-        )
-      }
-    } catch (err) {
-      if (err.message && err.message.includes('exigido ao menos uma foto')) {
-        throw err
-      }
-      throw new BadRequestError('Não é possível concluir: nenhuma foto encontrada.')
+    } catch (_) {}
+
+    const hasBefore = photos.some((p) => p.getString('stage') === 'before')
+    if (!hasBefore) {
+      throw new BadRequestError("Erro: É obrigatório anexar fotos do estágio 'Antes'")
     }
 
-    if (!record.getString('diagnosis') || !record.getString('activities_performed')) {
-      throw new BadRequestError(
-        'Não é possível concluir: relatório técnico incompleto (diagnóstico e atividades obrigatórios).',
-      )
+    let hasSignature = !!record.getString('signature')
+    if (!hasSignature) {
+      try {
+        const quotes = $app.findRecordsByFilter(
+          'quotes',
+          `service_order = '${record.id}'`,
+          '',
+          1,
+          0,
+        )
+        if (quotes.length > 0) {
+          const appts = $app.findRecordsByFilter(
+            'appointments',
+            `quote = '${quotes[0].id}'`,
+            '',
+            1,
+            0,
+          )
+          if (appts.length > 0) {
+            const execs = $app.findRecordsByFilter(
+              'executions',
+              `appointment = '${appts[0].id}'`,
+              '',
+              1,
+              0,
+            )
+            if (execs.length > 0 && execs[0].getString('signature')) {
+              hasSignature = true
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (!hasSignature) {
+      throw new BadRequestError('Erro: A assinatura do cliente/técnico é obrigatória')
     }
   }
 
