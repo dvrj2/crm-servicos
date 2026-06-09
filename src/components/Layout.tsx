@@ -73,15 +73,27 @@ export default function Layout() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton tooltip="Técnicos">
-                      <Users />
-                      <span>Técnicos</span>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/technicians'}
+                      tooltip="Técnicos"
+                    >
+                      <Link to="/technicians">
+                        <Users />
+                        <span>Técnicos</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton tooltip="Relatórios">
-                      <FileBarChart />
-                      <span>Relatórios</span>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/reports'}
+                      tooltip="Relatórios"
+                    >
+                      <Link to="/reports">
+                        <FileBarChart />
+                        <span>Relatórios</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
