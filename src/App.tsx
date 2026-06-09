@@ -16,37 +16,63 @@ import Finance from './pages/Finance'
 import Indicators from './pages/Indicators'
 import LogsPage from './pages/Logs'
 import Layout from './components/Layout'
+import { useEffect } from 'react'
 import { AuthProvider } from './hooks/use-auth'
 import { ProtectedRoute } from './components/ProtectedRoute'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { toast } from 'sonner'
+
+const GlobalErrorHandler = ({ children }: { children: React.ReactNode }) => {
+  useEffect(() => {
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      // Ignora cancelamentos de requisição (abort)
+      if (event.reason?.isAbort) return
+
+      // Previne que o erro crashe a aplicação (Generic Crash)
+      event.preventDefault()
+
+      // Exibe a mensagem de validação detalhada provida pelo backend
+      toast.error('Operação não permitida', {
+        description: getErrorMessage(event.reason),
+      })
+    }
+    window.addEventListener('unhandledrejection', handleRejection)
+    return () => window.removeEventListener('unhandledrejection', handleRejection)
+  }, [])
+
+  return <>{children}</>
+}
 
 const App = () => (
   <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <Routes>
-          <Route path="/login" element={<Login />} />
+      <GlobalErrorHandler>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
+            <Route path="/login" element={<Login />} />
 
-          <Route element={<ProtectedRoute />}>
-            <Route element={<Layout />}>
-              <Route path="/" element={<Index />} />
-              <Route path="/order/:id" element={<OrderDetail />} />
-              <Route path="/order/:id/quote" element={<QuotePage />} />
-              <Route path="/schedule" element={<Schedule />} />
-              <Route path="/execution/:id" element={<Execution />} />
-              <Route path="/report/:id" element={<Report />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/technicians" element={<Technicians />} />
-              <Route path="/finance" element={<Finance />} />
-              <Route path="/indicators" element={<Indicators />} />
-              <Route path="/logs" element={<LogsPage />} />
+            <Route element={<ProtectedRoute />}>
+              <Route element={<Layout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/order/:id" element={<OrderDetail />} />
+                <Route path="/order/:id/quote" element={<QuotePage />} />
+                <Route path="/schedule" element={<Schedule />} />
+                <Route path="/execution/:id" element={<Execution />} />
+                <Route path="/report/:id" element={<Report />} />
+                <Route path="/reports" element={<Reports />} />
+                <Route path="/technicians" element={<Technicians />} />
+                <Route path="/finance" element={<Finance />} />
+                <Route path="/indicators" element={<Indicators />} />
+                <Route path="/logs" element={<LogsPage />} />
+              </Route>
             </Route>
-          </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </TooltipProvider>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </TooltipProvider>
+      </GlobalErrorHandler>
     </AuthProvider>
   </BrowserRouter>
 )

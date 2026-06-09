@@ -22,6 +22,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { updateOrder, deleteOrder } from '@/services/api'
 import { useToast } from '@/hooks/use-toast'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -108,7 +109,9 @@ Podemos seguir com a aprovação? Aguardamos seu retorno para agendar.`
     try {
       await updateOrder(order.id, {
         status,
-        technician: tech || undefined,
+        // O uso de 'null' aqui assegura que se o técnico for removido,
+        // a relação será devidamente apagada no backend em vez de ser ignorada (undefined).
+        technician: tech || null,
         has_pending_checklist: checklist,
       })
       toast({ title: 'OS Atualizada', description: 'As alterações foram salvas com sucesso.' })
@@ -116,8 +119,8 @@ Podemos seguir com a aprovação? Aguardamos seu retorno para agendar.`
       onClose()
     } catch (err: any) {
       toast({
-        title: 'Erro',
-        description: err?.response?.message || 'Não foi possível salvar as alterações.',
+        title: 'Erro de validação',
+        description: getErrorMessage(err),
         variant: 'destructive',
       })
     } finally {
