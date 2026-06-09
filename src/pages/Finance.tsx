@@ -50,7 +50,7 @@ export default function Finance() {
     try {
       const records = await pb.collection('service_orders').getFullList({
         expand: 'technician',
-        filter: 'status = "concluido" || status = "faturado"',
+        filter: 'status = "concluído" || status = "faturado"',
         sort: '-finished_at',
       })
       setOrders(records as unknown as ServiceOrder[])
@@ -132,7 +132,7 @@ Agradecemos a confiança em nossos serviços!`,
       await pb.collection('service_orders').create({
         customer_name: order.customer_name,
         service_type: order.service_type,
-        urgency: 'media',
+        urgency: 'média',
         sla_deadline: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
         region: order.region,
         status: 'novo',

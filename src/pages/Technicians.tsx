@@ -69,7 +69,7 @@ export default function Technicians() {
               <TableRow>
                 <TableHead>Técnico</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Capacidade Diária</TableHead>
+                <TableHead>Capac. (Uso/Total)</TableHead>
                 <TableHead>Localização</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
@@ -104,7 +104,7 @@ export default function Technicians() {
                     <TableCell>
                       <div className="flex items-center gap-2 text-slate-600">
                         <Clock className="h-3 w-3" />
-                        {tech.capacity_diaria_hours || 8} horas
+                        {tech.occupancy_current_hours || 0} / {tech.capacity_diaria_hours || 8} h
                       </div>
                     </TableCell>
                     <TableCell>
@@ -118,11 +118,8 @@ export default function Technicians() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="bg-green-50 text-green-700 border-green-200"
-                      >
-                        Ativo
+                      <Badge variant="outline" className="capitalize">
+                        {tech.status || 'disponível'}
                       </Badge>
                     </TableCell>
                   </TableRow>

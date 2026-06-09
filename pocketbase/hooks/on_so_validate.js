@@ -1,7 +1,7 @@
 onRecordValidate((e) => {
   const record = e.record
 
-  if (record.getString('status') === 'concluido' || record.getString('status') === 'faturado') {
+  if (record.getString('status') === 'concluído' || record.getString('status') === 'faturado') {
     if (!record.getString('signature')) {
       throw new BadRequestError('Não é possível concluir: falta assinatura do cliente.')
     }
@@ -39,8 +39,8 @@ onRecordValidate((e) => {
   }
 
   if (
-    record.getString('status') === 'concluido' &&
-    record.original().getString('status') !== 'concluido'
+    record.getString('status') === 'concluído' &&
+    record.original().getString('status') !== 'concluído'
   ) {
     if (!record.getString('payment_link')) {
       record.set('payment_link', `https://pay.mock.com/${record.id}`)

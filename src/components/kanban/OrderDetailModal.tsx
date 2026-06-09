@@ -211,12 +211,11 @@ Podemos seguir com a aprovação? Aguardamos seu retorno para agendar.`
                   <SelectContent>
                     <SelectItem value="novo">Novo</SelectItem>
                     <SelectItem value="qualificado">Qualificado</SelectItem>
-                    <SelectItem value="orcamento">Orçamento</SelectItem>
+                    <SelectItem value="orçamento">Orçamento</SelectItem>
                     <SelectItem value="aprovado">Aprovado</SelectItem>
                     <SelectItem value="agendado">Agendado</SelectItem>
-                    <SelectItem value="execucao">Em Execução</SelectItem>
-                    <SelectItem value="concluido">Concluído</SelectItem>
-                    <SelectItem value="faturado">Faturado</SelectItem>
+                    <SelectItem value="executando">Em Execução</SelectItem>
+                    <SelectItem value="concluído">Concluído</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -6,7 +6,7 @@ routerAdd(
       const osId = e.request.pathValue('id')
       const os = $app.findRecordById('service_orders', osId)
 
-      const techs = $app.findRecordsByFilter('users', "status != 'inactive'", '', 100, 0)
+      const techs = $app.findRecordsByFilter('users', "status != 'ocupado'", '', 100, 0)
 
       if (techs.length === 0) return e.json(200, { suggested_id: null })
 
@@ -22,7 +22,7 @@ routerAdd(
         try {
           const activeOrders = $app.findRecordsByFilter(
             'service_orders',
-            `technician = '${t.id}' && status != 'concluido' && status != 'faturado'`,
+            `technician = '${t.id}' && status != 'concluído' && status != 'faturado'`,
             '',
             100,
             0,

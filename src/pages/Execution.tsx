@@ -118,7 +118,7 @@ export default function Execution() {
     captureLocation()
     await updateExecutionOrder(order.id, {
       operational_status: 'in_progress',
-      status: 'execucao',
+      status: 'executando',
       started_at: new Date().toISOString(),
       is_rework: isRework,
     })
@@ -164,7 +164,7 @@ export default function Execution() {
 
     await updateExecutionOrder(order.id, {
       operational_status: 'completed',
-      status: 'concluido',
+      status: 'concluído',
       finished_at: new Date().toISOString(),
       materials_used: materials,
       technical_observations: observations,

@@ -10,7 +10,7 @@ onRecordCreate((e) => {
           {
             role: 'system',
             content:
-              "You are a classifier for service orders. Determine urgency ('baixa', 'media', 'alta', 'critica') and SLA in minutes (e.g. 120 for critica, 1440 for media, 2880 for baixa). Return JSON: { \"urgency\": \"...\", \"sla_minutes\": 120 }. Keywords like 'incêndio', 'curto-circuito', 'sem energia', 'choque', 'urgente' imply 'critica' and 120 minutes.",
+              "You are a classifier for service orders. Determine urgency ('baixa', 'média', 'crítica') and SLA in minutes (e.g. 120 for crítica, 1440 for média, 2880 for baixa). Return JSON: { \"urgency\": \"...\", \"sla_minutes\": 120 }. Keywords like 'incêndio', 'curto-circuito', 'sem energia', 'choque', 'urgente' imply 'crítica' and 120 minutes.",
           },
           { role: 'user', content: desc },
         ],

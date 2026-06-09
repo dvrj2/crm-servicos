@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T14:07:15.803Z",
+  "generatedAt": "2026-06-09T16:53:53.601Z",
   "collections": [
     {
       "name": "users",
@@ -73,7 +73,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["active", "inactive"]
+          "selectValues": ["disponível", "em rota", "ocupado"]
         },
         {
           "name": "operational_status",
@@ -81,6 +81,12 @@
           "required": false,
           "system": false,
           "selectValues": ["available", "en_route", "busy"]
+        },
+        {
+          "name": "occupancy_current_hours",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -116,7 +122,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["baixa", "media", "alta"]
+          "selectValues": ["baixa", "média", "crítica"]
         },
         {
           "name": "sla_deadline",
@@ -151,12 +157,11 @@
           "selectValues": [
             "novo",
             "qualificado",
-            "orcamento",
+            "orçamento",
             "aprovado",
             "agendado",
-            "execucao",
-            "concluido",
-            "faturado"
+            "executando",
+            "concluído"
           ]
         },
         {
@@ -396,6 +401,19 @@
           "type": "number",
           "required": false,
           "system": false
+        },
+        {
+          "name": "customer",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "customers"
+        },
+        {
+          "name": "photos",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -606,6 +624,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "tipo_cliente",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["residencial", "comercial", "industrial"]
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_customers_phone ON customers (phone) WHERE phone != ''"]
@@ -671,6 +696,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "suggested_price",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
@@ -715,6 +746,162 @@
         {
           "name": "travel_time_min",
           "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "operation_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["pendente", "a_caminho", "em_execucao", "concluido"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "executions",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "appointment",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "appointments"
+        },
+        {
+          "name": "checklist",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "photos_before",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "photos_after",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "signature",
+          "type": "file",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "materials_used",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "technical_report",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_rework",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "financials",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "execution",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "executions"
+        },
+        {
+          "name": "final_value",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "payment_status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["pendente", "pago"]
+        },
+        {
+          "name": "payment_method",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "average_ticket",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "actual_margin",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_recurring",
+          "type": "bool",
           "required": false,
           "system": false
         },

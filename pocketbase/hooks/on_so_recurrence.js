@@ -2,7 +2,7 @@ onRecordAfterUpdateSuccess((e) => {
   const record = e.record
   const original = record.original()
 
-  if (record.getString('status') === 'concluido' && original.getString('status') !== 'concluido') {
+  if (record.getString('status') === 'concluído' && original.getString('status') !== 'concluído') {
     if (
       record.getBool('is_recurring') ||
       record.getString('service_type').toLowerCase().includes('preventiva')
@@ -13,7 +13,7 @@ onRecordAfterUpdateSuccess((e) => {
       const newRecord = new Record($app.findCollectionByNameOrId('service_orders'))
       newRecord.set('customer_name', record.getString('customer_name'))
       newRecord.set('service_type', record.getString('service_type'))
-      newRecord.set('urgency', 'media')
+      newRecord.set('urgency', 'média')
 
       const nextDate = new Date(Date.now() + days * 24 * 3600 * 1000)
       newRecord.set('sla_deadline', nextDate.toISOString())

@@ -1,13 +1,12 @@
-export type Urgency = 'baixa' | 'media' | 'alta' | 'critica'
+export type Urgency = 'baixa' | 'média' | 'crítica'
 export type OrderStatus =
   | 'novo'
   | 'qualificado'
-  | 'orcamento'
+  | 'orçamento'
   | 'aprovado'
   | 'agendado'
-  | 'execucao'
-  | 'concluido'
-  | 'faturado'
+  | 'executando'
+  | 'concluído'
 
 export interface User {
   id: string
@@ -15,11 +14,12 @@ export interface User {
   avatar: string
   email: string
   capacity_diaria_hours?: number
+  occupancy_current_hours?: number
   current_lat?: number
   current_lng?: number
   region?: string
   certifications?: string
-  status?: 'active' | 'inactive'
+  status?: 'disponível' | 'em rota' | 'ocupado'
   operational_status?: 'available' | 'en_route' | 'busy'
 }
 
@@ -67,7 +67,8 @@ export interface ServiceOrder {
   total_distance_km?: number
   actual_duration_hours?: number
   is_recurring?: boolean
-  origin?: string
+  origin?: 'whatsapp' | 'site' | 'outros'
+  customer?: string
   category?: string
   estimated_materials?: string
   suggested_price?: number
