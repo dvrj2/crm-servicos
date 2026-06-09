@@ -30,5 +30,8 @@
     "tests/**/*",
     "vite-plugin-react-uid.js",
     "README.md"
-  ]
+  ],
+  "deployment": {
+    "lastDevBuildRef": "f27c204"
+  }
 }
