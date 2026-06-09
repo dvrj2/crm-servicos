@@ -1,6 +1,17 @@
 import pb from '@/lib/pocketbase/client'
 import { ServiceOrder } from '@/types'
 
+export const createMockImageFile = (filename: string): File => {
+  const b64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+  const bin = atob(b64)
+  const array = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) {
+    array[i] = bin.charCodeAt(i)
+  }
+  return new File([array.buffer], filename, { type: 'image/png' })
+}
+
 export const createSimulatedLog = async (
   osId: string,
   action: string,
@@ -131,10 +142,7 @@ export const finalizeSimulation = async (osId: string) => {
     const execData = new FormData()
     execData.append('appointment', appt.id)
     execData.append('technical_report', os.technical_report || '')
-    execData.append(
-      'signature',
-      new File(['dummy signature'], 'signature.png', { type: 'image/png' }),
-    )
+    execData.append('signature', createMockImageFile('signature.png'))
 
     const exec = await pb.collection('executions').create(execData)
     execId = exec.id

@@ -24,6 +24,7 @@ import {
   confirmPayment,
   uploadInitialPhotos,
   simulateBulkAssignment,
+  createMockImageFile,
 } from '@/services/simulator'
 
 const steps = [
@@ -103,9 +104,9 @@ export default function Simulator() {
         files = [new File([blob], 'foto.jpg', { type: 'image/jpeg' })]
       } else {
         files = [
-          new File(['dummy photo 1'], 'foto1.jpg', { type: 'image/jpeg' }),
-          new File(['dummy photo 2'], 'foto2.jpg', { type: 'image/jpeg' }),
-          new File(['dummy photo 3'], 'foto3.jpg', { type: 'image/jpeg' }),
+          createMockImageFile('foto1.png'),
+          createMockImageFile('foto2.png'),
+          createMockImageFile('foto3.png'),
         ]
       }
       await uploadInitialPhotos(osId!, files)
@@ -155,7 +156,7 @@ export default function Simulator() {
   const handleChecklist = async () => {
     try {
       await simulateChecklist(osId!)
-      const mockFiles = [new File(['dummy execution photo'], 'after.jpg', { type: 'image/jpeg' })]
+      const mockFiles = [createMockImageFile('after.png')]
       await uploadExecutionPhotos(osId!, mockFiles)
       setExecStatus(3)
       setActiveStep(5)
