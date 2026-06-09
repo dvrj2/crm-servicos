@@ -1,15 +1,31 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ServiceOrder, ServiceOrderPhoto } from '@/types'
-import { getServiceOrder, getOrderPhotos, updateOrder } from '@/services/api'
+import { ServiceOrder, ServiceOrderPhoto, ServiceOrderChecklistItem } from '@/types'
+import { getOrderDetails } from '@/services/orders'
+import {
+  getOrderPhotos,
+  getChecklistItems,
+  getExecutionByOrderId,
+  generateAIReport,
+  updateExecutionOrder,
+} from '@/services/execution'
 import pb from '@/lib/pocketbase/client'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
-import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Badge } from '@/components/ui/badge'
 import {
   CheckCircle2,
   FileText,
@@ -20,6 +36,7 @@ import {
   Camera,
   Clock,
   Printer,
+  Wand2,
 } from 'lucide-react'
 
 export default function Report() {
@@ -29,29 +46,30 @@ export default function Report() {
 
   const [order, setOrder] = useState<ServiceOrder | null>(null)
   const [photos, setPhotos] = useState<ServiceOrderPhoto[]>([])
+  const [checklists, setChecklists] = useState<ServiceOrderChecklistItem[]>([])
+  const [execution, setExecution] = useState<any | null>(null)
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [generating, setGenerating] = useState(false)
 
-  const [formData, setFormData] = useState({
-    diagnosis: '',
-    activities_performed: '',
-    current_condition: '',
-    recommendations: '',
-  })
+  const [reportText, setReportText] = useState('')
 
   const loadData = async () => {
     if (!id) return
     try {
       setLoading(true)
-      const [orderData, photosData] = await Promise.all([getServiceOrder(id), getOrderPhotos(id)])
+      const [orderData, photosData, checklistsData, execData] = await Promise.all([
+        getOrderDetails(id),
+        getOrderPhotos(id),
+        getChecklistItems(id),
+        getExecutionByOrderId(id),
+      ])
       setOrder(orderData)
       setPhotos(photosData)
-      setFormData({
-        diagnosis: orderData.diagnosis || '',
-        activities_performed: orderData.activities_performed || '',
-        current_condition: orderData.current_condition || '',
-        recommendations: orderData.recommendations || '',
-      })
+      setChecklists(checklistsData)
+      setExecution(execData)
+      setReportText(orderData.technical_report || execData?.technical_report || '')
     } catch (err) {
       toast({
         title: 'Erro',
@@ -89,23 +107,76 @@ export default function Report() {
 
   const beforePhotos = photos.filter((p) => p.stage === 'before')
   const afterPhotos = photos.filter((p) => p.stage === 'after')
-  const hasBeforePhoto = beforePhotos.length > 0
   const hasAfterPhoto = afterPhotos.length > 0
-  const hasSignature = !!order.signature
-  const hasPendingChecklist = order.has_pending_checklist
+  const signatureUrl = execution?.signature
+    ? pb.files.getURL(execution, execution.signature)
+    : order.signature
+      ? pb.files.getURL(order, order.signature)
+      : null
+  const hasSignature = !!signatureUrl
 
-  const isReportReady = hasBeforePhoto && hasAfterPhoto && hasSignature && !hasPendingChecklist
+  // Parse materials
+  let materialsList: any[] = []
+  let rawMaterialsText = ''
+  try {
+    if (execution?.materials_used) {
+      const parsed = JSON.parse(execution.materials_used)
+      if (Array.isArray(parsed)) {
+        materialsList = parsed
+      } else if (typeof parsed === 'string') {
+        try {
+          const doubleParsed = JSON.parse(parsed)
+          if (Array.isArray(doubleParsed)) materialsList = doubleParsed
+          else rawMaterialsText = parsed
+        } catch {
+          rawMaterialsText = parsed
+        }
+      } else {
+        rawMaterialsText = String(parsed)
+      }
+    }
+  } catch {
+    rawMaterialsText = execution?.materials_used || ''
+  }
+
+  const isReportValid = reportText.trim().length > 0
+  const canSendWhatsApp = hasAfterPhoto && hasSignature && isReportValid
+
+  let missingItems = []
+  if (!hasAfterPhoto) missingItems.push("Foto 'Depois'")
+  if (!hasSignature) missingItems.push('Assinatura do Cliente')
+  if (!isReportValid) missingItems.push('Laudo Técnico Preenchido')
+
+  const handleGenerateAI = async () => {
+    setGenerating(true)
+    try {
+      const checklistStr = checklists
+        .map((c) => `- ${c.task_description}: ${c.is_completed ? 'OK' : 'Pendente'}`)
+        .join('\n')
+      const notes = execution?.technical_report || order.technical_observations || ''
+      const res = await generateAIReport(order.description, notes, checklistStr)
+      setReportText(res)
+      toast({
+        title: 'Laudo Gerado',
+        description: 'O laudo foi gerado por IA com sucesso. Revise antes de salvar.',
+      })
+    } catch (err) {
+      toast({ title: 'Erro', description: 'Falha ao gerar o laudo.', variant: 'destructive' })
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   const handleSave = async (complete: boolean = false) => {
     setSaving(true)
     try {
       const payload: Partial<ServiceOrder> = {
-        ...formData,
+        technical_report: reportText,
       }
       if (complete) {
-        payload.status = 'concluido'
+        payload.status = 'concluído'
       }
-      await updateOrder(order.id, payload)
+      await updateExecutionOrder(order.id, payload)
       toast({ title: 'Sucesso', description: 'Laudo salvo com sucesso.' })
       if (complete) loadData()
     } catch (err) {
@@ -117,8 +188,19 @@ export default function Report() {
 
   const handlePayment = async () => {
     try {
-      await updateOrder(order.id, { status: 'faturado' })
-      toast({ title: 'Faturado', description: 'A OS foi marcada como faturada.' })
+      await updateExecutionOrder(order.id, { payment_status: 'pendente' })
+      if (execution) {
+        try {
+          await pb.collection('financials').create({
+            execution: execution.id,
+            final_value: order.final_value || 0,
+            payment_status: 'pendente',
+          })
+        } catch (e) {
+          console.warn('Financials record may already exist or failed to create')
+        }
+      }
+      toast({ title: 'Faturado', description: 'A OS foi marcada para faturamento (Pendente).' })
       loadData()
     } catch (err) {
       toast({ title: 'Erro', description: 'Falha ao faturar.', variant: 'destructive' })
@@ -126,15 +208,7 @@ export default function Report() {
   }
 
   const handleWhatsApp = () => {
-    const text = `Olá, ${order.customer_name}! 📄 Aqui é o laudo técnico do serviço realizado (OS ${order.id}).
-🛠️ *Serviço:* ${order.service_type}
-📝 *Diagnóstico:* ${formData.diagnosis || 'Não informado'}
-✅ *Atividades:* ${formData.activities_performed || 'Não informado'}
-⚠️ *Condição Atual:* ${formData.current_condition || 'Não informado'}
-💡 *Recomendações:* ${formData.recommendations || 'Não informado'}
-🔧 *Materiais:* ${order.materials_used || 'Nenhum material adicional registrado.'}
-
-Agradecemos a preferência! Qualquer dúvida, estamos à disposição.`
+    const text = `Olá, ${order.customer_name}! 📄 Aqui está o resumo do seu laudo técnico (OS ${order.id}).\n🛠️ *Serviço:* ${order.service_type}\n\n📝 *Laudo Técnico:*\n${reportText}\n\nAgradecemos a preferência! Qualquer dúvida, estamos à disposição.`
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
   }
 
@@ -142,53 +216,46 @@ Agradecemos a preferência! Qualquer dúvida, estamos à disposição.`
     window.print()
   }
 
-  const signatureUrl = order.signature ? pb.files.getURL(order, order.signature) : null
-
   return (
-    <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6 pb-24">
-      <div className="flex items-center gap-4 border-b pb-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="print:hidden">
+    <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6 pb-24 animate-fade-in">
+      <div className="flex items-center gap-4 border-b pb-4 print:border-none print:pb-0">
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="print:hidden">
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Laudo Técnico e Entrega</h1>
-          <p className="text-slate-500">
-            OS: <span className="font-mono">{order.id}</span> - {order.customer_name}
-          </p>
+        <div className="flex-1 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              Laudo Técnico e Entrega
+            </h1>
+            <p className="text-slate-500">
+              OS: <span className="font-mono">{order.id}</span> - {order.customer_name}
+            </p>
+          </div>
+          <Badge variant="outline" className="print:hidden capitalize">
+            {order.status}
+          </Badge>
         </div>
       </div>
 
-      {order.is_rework && (
-        <Alert className="bg-orange-50 border-orange-200 text-orange-900">
-          <AlertTriangle className="h-4 w-4 text-orange-600" />
-          <AlertTitle>Atenção: OS de Retrabalho</AlertTitle>
-          <AlertDescription>
-            Este serviço está marcado como retrabalho. Revise o histórico antes de aplicar
-            cobranças.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {!isReportReady && (
+      {!canSendWhatsApp && (
         <Alert variant="destructive" className="print:hidden">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Requisitos Operacionais Pendentes</AlertTitle>
+          <AlertTitle>Requisitos Pendentes para Envio</AlertTitle>
           <AlertDescription>
-            A entrega do laudo está bloqueada até que as seguintes pendências sejam resolvidas:
+            Para enviar o laudo ao cliente, resolva as seguintes pendências:
             <ul className="list-disc pl-5 mt-2 space-y-1">
-              {hasPendingChecklist && <li>O checklist possui itens pendentes.</li>}
-              {!hasSignature && <li>Assinatura do cliente não foi coletada.</li>}
-              {!hasBeforePhoto && <li>Falta pelo menos uma foto de "Antes".</li>}
-              {!hasAfterPhoto && <li>Falta pelo menos uma foto de "Depois".</li>}
+              {missingItems.map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
             </ul>
           </AlertDescription>
         </Alert>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
+      <div className="grid md:grid-cols-2 gap-6 print:block print:space-y-6">
+        <Card className="print:shadow-none print:border-slate-200 h-full">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
+            <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
               <Clock className="w-5 h-5 text-slate-500" /> Resumo do Serviço
             </CardTitle>
           </CardHeader>
@@ -211,146 +278,165 @@ Agradecemos a preferência! Qualquer dúvida, estamos à disposição.`
               <span className="text-slate-500 block">Tipo de Serviço</span>
               <span className="font-medium">{order.service_type}</span>
             </div>
-            <div>
-              <span className="text-slate-500 block">Materiais Utilizados</span>
-              <p className="font-medium bg-slate-50 p-2 rounded border mt-1">
-                {order.materials_used || 'Nenhum material registrado.'}
-              </p>
-            </div>
+            {order.description && (
+              <div>
+                <span className="text-slate-500 block">Descrição Inicial</span>
+                <p className="mt-1 text-slate-700 bg-slate-50 p-2 rounded border border-slate-100">
+                  {order.description}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="w-5 h-5 text-slate-500" /> Detalhes do Laudo
+        <Card className="print:shadow-none print:border-slate-200 h-full flex flex-col">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
+              <FileText className="w-5 h-5 text-slate-500" /> Laudo Técnico Final
             </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateAI}
+              disabled={generating}
+              className="print:hidden border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+            >
+              <Wand2 className="w-4 h-4 mr-2" />
+              {generating ? 'Gerando...' : 'Auto-Gerar'}
+            </Button>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Diagnóstico</Label>
-              <Textarea
-                value={formData.diagnosis}
-                onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
-                placeholder="Qual era o problema encontrado?"
-                className="resize-none"
-                rows={2}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Atividades Realizadas</Label>
-              <Textarea
-                value={formData.activities_performed}
-                onChange={(e) => setFormData({ ...formData, activities_performed: e.target.value })}
-                placeholder="Descreva o que foi feito..."
-                className="resize-none"
-                rows={2}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Condição Atual</Label>
-              <Textarea
-                value={formData.current_condition}
-                onChange={(e) => setFormData({ ...formData, current_condition: e.target.value })}
-                placeholder="Como o equipamento/sistema foi deixado?"
-                className="resize-none"
-                rows={2}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Recomendações Futuras</Label>
-              <Textarea
-                value={formData.recommendations}
-                onChange={(e) => setFormData({ ...formData, recommendations: e.target.value })}
-                placeholder="O que o cliente deve fazer a seguir?"
-                className="resize-none"
-                rows={2}
-              />
-            </div>
+          <CardContent className="flex-1 flex flex-col">
+            <Textarea
+              value={reportText}
+              onChange={(e) => setReportText(e.target.value)}
+              placeholder="Descreva o laudo técnico completo, condição do equipamento, atividades realizadas e recomendações..."
+              className="flex-1 min-h-[150px] resize-y print:border-none print:resize-none print:p-0 print:min-h-0 print:bg-transparent"
+            />
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      <Card className="print:shadow-none print:border-slate-200">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
+          <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
             <Camera className="w-5 h-5 text-slate-500" /> Evidências Fotográficas
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div>
-            <h3 className="font-medium text-sm mb-3">Fotos "Antes"</h3>
-            {beforePhotos.length === 0 ? (
-              <p className="text-sm text-slate-500 italic">Nenhuma foto registrada.</p>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {beforePhotos.map((p) => (
-                  <div
-                    key={p.id}
-                    className="relative aspect-square rounded-md overflow-hidden bg-slate-100 border"
-                  >
-                    <img
-                      src={
-                        p.file
-                          ? pb.files.getURL(p, p.file)
-                          : 'https://img.usecurling.com/p/200/200?q=tools&color=gray'
-                      }
-                      alt="Antes"
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div>
-            <h3 className="font-medium text-sm mb-3">Fotos "Depois"</h3>
-            {afterPhotos.length === 0 ? (
-              <p className="text-sm text-slate-500 italic">Nenhuma foto registrada.</p>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {afterPhotos.map((p) => (
-                  <div
-                    key={p.id}
-                    className="relative aspect-square rounded-md overflow-hidden bg-slate-100 border"
-                  >
-                    <img
-                      src={
-                        p.file
-                          ? pb.files.getURL(p, p.file)
-                          : 'https://img.usecurling.com/p/200/200?q=tools&color=green'
-                      }
-                      alt="Depois"
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-slate-500" /> Assinatura do Cliente
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {signatureUrl ? (
-            <div className="max-w-xs border rounded-lg overflow-hidden bg-white p-2">
-              <img src={signatureUrl} alt="Assinatura" className="w-full h-auto" />
+          <div className="grid md:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
+            <div>
+              <h3 className="font-medium text-sm mb-3 text-slate-700">Fotos "Antes"</h3>
+              {beforePhotos.length === 0 ? (
+                <p className="text-sm text-slate-500 italic">Nenhuma foto registrada.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 print:grid-cols-2">
+                  {beforePhotos.map((p) => (
+                    <div
+                      key={p.id}
+                      className="relative aspect-square rounded-md overflow-hidden bg-slate-100 border"
+                    >
+                      <img
+                        src={pb.files.getURL(p, p.file)}
+                        alt="Antes"
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ) : (
-            <p className="text-sm text-slate-500 italic">
-              Assinatura não coletada na tela de execução.
-            </p>
-          )}
+            <div>
+              <h3 className="font-medium text-sm mb-3 text-slate-700">Fotos "Depois"</h3>
+              {afterPhotos.length === 0 ? (
+                <p className="text-sm text-slate-500 italic">Nenhuma foto registrada.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 print:grid-cols-2">
+                  {afterPhotos.map((p) => (
+                    <div
+                      key={p.id}
+                      className="relative aspect-square rounded-md overflow-hidden bg-slate-100 border"
+                    >
+                      <img
+                        src={pb.files.getURL(p, p.file)}
+                        alt="Depois"
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg flex items-center justify-between z-10 sm:static sm:bg-transparent sm:border-none sm:shadow-none sm:p-0 print:hidden">
+      <div className="grid md:grid-cols-2 gap-6 print:block print:space-y-6">
+        <Card className="print:shadow-none print:border-slate-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
+              <CheckCircle2 className="w-5 h-5 text-slate-500" /> Materiais Utilizados
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {materialsList.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Material / Peça</TableHead>
+                    <TableHead className="text-right">Qtd</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {materialsList.map((m, i) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        {m?.name ||
+                          m?.description ||
+                          (typeof m === 'string' ? m : JSON.stringify(m))}
+                      </TableCell>
+                      <TableCell className="text-right">{m?.quantity || m?.qtd || 1}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : rawMaterialsText ? (
+              <p className="text-sm text-slate-700 bg-slate-50 p-3 rounded border border-slate-100 whitespace-pre-wrap">
+                {rawMaterialsText}
+              </p>
+            ) : (
+              <p className="text-sm text-slate-500 italic">Nenhum material adicional registrado.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="print:shadow-none print:border-slate-200 break-inside-avoid">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
+              <CheckCircle2 className="w-5 h-5 text-slate-500" /> Assinatura do Cliente
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center min-h-[150px]">
+            {signatureUrl ? (
+              <div className="max-w-xs border rounded-lg overflow-hidden bg-white p-4">
+                <img
+                  src={signatureUrl}
+                  alt="Assinatura"
+                  className="w-full h-auto mix-blend-multiply"
+                />
+                <p className="text-center text-xs text-slate-500 mt-2 border-t pt-2">
+                  {order.customer_name}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 italic text-center">
+                Assinatura não coletada na tela de execução.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex items-center justify-between z-10 sm:static sm:bg-transparent sm:border-none sm:shadow-none sm:p-0 print:hidden">
         <div className="hidden sm:flex gap-2">
           <Button variant="outline" onClick={() => handleSave(false)} disabled={saving}>
             Salvar Rascunho
@@ -359,32 +445,43 @@ Agradecemos a preferência! Qualquer dúvida, estamos à disposição.`
         <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
           <Button
             variant="outline"
-            className="flex-shrink-0"
-            disabled={!isReportReady}
+            className="flex-shrink-0 border-slate-200 hover:bg-slate-50"
             onClick={handleGeneratePDF}
           >
             <Printer className="w-4 h-4 mr-2" /> PDF
           </Button>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="flex-shrink-0">
+                <Button
+                  variant="outline"
+                  className={`w-full ${canSendWhatsApp ? 'text-green-600 hover:text-green-700 hover:bg-green-50 border-green-200' : 'opacity-50 cursor-not-allowed'}`}
+                  disabled={!canSendWhatsApp}
+                  onClick={canSendWhatsApp ? handleWhatsApp : undefined}
+                >
+                  <Send className="w-4 h-4 mr-2" /> WhatsApp
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {!canSendWhatsApp && (
+              <TooltipContent side="top">
+                <p className="text-xs">Requisitos pendentes!</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+
           <Button
             variant="outline"
-            className="flex-shrink-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-            disabled={!isReportReady}
-            onClick={handleWhatsApp}
-          >
-            <Send className="w-4 h-4 mr-2" /> WhatsApp
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-shrink-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-            disabled={!isReportReady}
+            className="flex-shrink-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
             onClick={handlePayment}
           >
-            <CreditCard className="w-4 h-4 mr-2" /> Cobrar
+            <CreditCard className="w-4 h-4 mr-2" /> Faturar
           </Button>
           <Button
-            className="flex-shrink-0 ml-auto"
+            className="flex-shrink-0 ml-auto sm:ml-0 bg-slate-900 text-white hover:bg-slate-800"
             onClick={() => handleSave(true)}
-            disabled={saving || !isReportReady}
+            disabled={saving}
           >
             <CheckCircle2 className="w-4 h-4 mr-2" /> Entregar
           </Button>

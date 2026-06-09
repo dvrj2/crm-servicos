@@ -295,6 +295,14 @@ export default function OrderDetail() {
                 <ShieldAlert className="w-4 h-4 mr-2" />
                 Encaminhar p/ Supervisor
               </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start bg-slate-900 text-white hover:bg-slate-800 hover:text-white mt-2"
+                onClick={() => navigate(`/report/${order.id}`)}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Laudo e Entrega
+              </Button>
             </CardContent>
           </Card>
         </div>

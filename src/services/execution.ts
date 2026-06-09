@@ -76,6 +76,28 @@ export const getExecutionForAppointment = async (appId: string) => {
   }
 }
 
+export const getExecutionByOrderId = async (orderId: string) => {
+  try {
+    const quote = await pb.collection('quotes').getFirstListItem(`service_order = "${orderId}"`)
+    const appt = await pb.collection('appointments').getFirstListItem(`quote = "${quote.id}"`)
+    return await pb.collection('executions').getFirstListItem(`appointment = "${appt.id}"`)
+  } catch {
+    return null
+  }
+}
+
+export const generateAIReport = async (
+  description: string,
+  technical_notes: string,
+  checklist: string,
+) => {
+  const res = await pb.send('/backend/v1/generate-report', {
+    method: 'POST',
+    body: JSON.stringify({ description, technical_notes, checklist }),
+  })
+  return res.report
+}
+
 export const createExecution = async (data: FormData | Record<string, any>) => {
   return await pb.collection('executions').create(data)
 }

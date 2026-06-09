@@ -228,7 +228,7 @@ export default function Execution() {
 
     if (user?.id) await pb.collection('users').update(user.id, { operational_status: 'available' })
     toast({ title: 'Sucesso', description: 'Serviço concluído com sucesso.' })
-    navigate('/')
+    navigate(`/report/${order.id}`)
   }
 
   const handleDocsUpdate = async () => {
