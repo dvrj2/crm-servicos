@@ -15,6 +15,7 @@ import Technicians from './pages/Technicians'
 import Finance from './pages/Finance'
 import Indicators from './pages/Indicators'
 import LogsPage from './pages/Logs'
+import Simulator from './pages/Simulator'
 import Layout from './components/Layout'
 import { useEffect } from 'react'
 import { AuthProvider } from './hooks/use-auth'
@@ -66,6 +67,7 @@ const App = () => (
                 <Route path="/finance" element={<Finance />} />
                 <Route path="/indicators" element={<Indicators />} />
                 <Route path="/logs" element={<LogsPage />} />
+                <Route path="/simulator" element={<Simulator />} />
               </Route>
             </Route>
 

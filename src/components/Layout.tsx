@@ -21,6 +21,7 @@ import {
   CalendarDays,
   DollarSign,
   LineChart,
+  Activity,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Input } from '@/components/ui/input'
@@ -119,6 +120,18 @@ export default function Layout() {
                       <Link to="/indicators">
                         <LineChart />
                         <span>Indicadores</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/simulator'}
+                      tooltip="Simulador"
+                    >
+                      <Link to="/simulator">
+                        <Activity />
+                        <span>Simulador</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
