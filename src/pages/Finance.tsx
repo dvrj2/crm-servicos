@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { useEffect, useState, useMemo } from 'react'
+import pb from '@/lib/pocketbase/client'
+import { useRealtime } from '@/hooks/use-realtime'
+import { ServiceOrder, User } from '@/types'
+import { differenceInDays, parseISO } from 'date-fns'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -12,475 +13,363 @@ import {
 } from '@/components/ui/select'
 import {
   Table,
-  TableHeader,
   TableBody,
-  TableRow,
-  TableHead,
   TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu'
-import { useRealtime } from '@/hooks/use-realtime'
-import { ServiceOrder } from '@/types'
-import pb from '@/lib/pocketbase/client'
-import { toast } from '@/hooks/use-toast'
-import { AlertTriangle, Send, RefreshCw, FileUp, CalendarDays, MoreHorizontal } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { DollarSign, Copy, RefreshCw, ExternalLink, Activity, AlertCircle } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 
 export default function Finance() {
   const [orders, setOrders] = useState<ServiceOrder[]>([])
-  const [selectedOrderForPayment, setSelectedOrderForPayment] = useState<ServiceOrder | null>(null)
-  const [paymentFile, setPaymentFile] = useState<File | null>(null)
-  const [uploading, setUploading] = useState(false)
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  const [period, setPeriod] = useState<number>(30)
-  const [paymentFilter, setPaymentFilter] = useState<string>('all')
-  const [techFilter, setTechFilter] = useState<string>('all')
-  const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all')
-  const [marginFilter, setMarginFilter] = useState<string>('all')
+  const [filters, setFilters] = useState({
+    period: '30',
+    technician: 'all',
+    serviceType: 'all',
+  })
 
-  const fetchOrders = async () => {
+  const loadData = async () => {
     try {
-      const records = await pb.collection('service_orders').getFullList({
-        expand: 'technician',
-        filter: 'status = "concluído" || status = "faturado"',
-        sort: '-finished_at',
-      })
-      setOrders(records as unknown as ServiceOrder[])
+      const [usersRes, ordersRes] = await Promise.all([
+        pb.collection('users').getFullList(),
+        pb.collection('service_orders').getFullList({
+          filter: `status = 'concluído'`,
+          expand: 'technician',
+          sort: '-updated',
+        }),
+      ])
+      setUsers(usersRes as unknown as User[])
+      setOrders(ordersRes as unknown as ServiceOrder[])
     } catch (e) {
-      console.error(e)
+      console.error('Failed to load finance data:', e)
+    } finally {
+      setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchOrders()
+    loadData()
   }, [])
 
-  useRealtime('service_orders', () => fetchOrders())
+  useRealtime('service_orders', () => {
+    loadData()
+  })
 
-  const customerDelays = useMemo(() => {
-    const map: Record<string, number> = {}
-    orders.forEach((o) => {
-      if (o.payment_status === 'vencido') {
-        map[o.customer_name] = (map[o.customer_name] || 0) + 1
-      }
-    })
-    return map
+  const serviceTypes = useMemo(() => {
+    const types = new Set(orders.map((o) => o.service_type).filter(Boolean))
+    return Array.from(types)
   }, [orders])
 
   const filteredOrders = useMemo(() => {
     const now = new Date()
+    const daysLimit = filters.period === 'all' ? 9999 : parseInt(filters.period, 10)
+
     return orders.filter((o) => {
-      const finishedAt = o.finished_at ? new Date(o.finished_at) : new Date(o.updated)
-      const daysDiff = (now.getTime() - finishedAt.getTime()) / (1000 * 3600 * 24)
-      if (daysDiff > period) return false
+      const orderDate = o.finished_at ? parseISO(o.finished_at) : parseISO(o.updated)
+      const inPeriod = differenceInDays(now, orderDate) <= daysLimit
+      const matchTech = filters.technician === 'all' || o.technician === filters.technician
+      const matchType = filters.serviceType === 'all' || o.service_type === filters.serviceType
 
-      if (paymentFilter !== 'all' && o.payment_status !== paymentFilter) return false
-      if (techFilter !== 'all' && o.technician !== techFilter) return false
-      if (serviceTypeFilter !== 'all' && o.service_type !== serviceTypeFilter) return false
-
-      if (marginFilter !== 'all') {
-        const margin = o.actual_margin || 0
-        if (marginFilter === 'negativa' && margin >= 0) return false
-        if (marginFilter === 'baixa' && (margin < 0 || margin > 15)) return false
-        if (marginFilter === 'alta' && margin <= 15) return false
-      }
-
-      return true
+      return inPeriod && matchTech && matchType
     })
-  }, [orders, period, paymentFilter, techFilter, serviceTypeFilter, marginFilter])
+  }, [orders, filters])
 
-  const kpis = useMemo(() => {
-    const totalRevenue = filteredOrders.reduce((acc, o) => acc + (o.final_value || 0), 0)
-    const averageTicket = filteredOrders.length > 0 ? totalRevenue / filteredOrders.length : 0
-    const paidCount = filteredOrders.filter((o) => o.payment_status === 'pago').length
-    const paidPercentage = filteredOrders.length > 0 ? (paidCount / filteredOrders.length) * 100 : 0
-    const vencidoCount = filteredOrders.filter((o) => o.payment_status === 'vencido').length
-    const defaultRate = filteredOrders.length > 0 ? (vencidoCount / filteredOrders.length) * 100 : 0
-    const totalMargin = filteredOrders.reduce((acc, o) => acc + (o.actual_margin || 0), 0)
-    const avgMargin = filteredOrders.length > 0 ? totalMargin / filteredOrders.length : 0
+  const totalRevenue = filteredOrders.reduce((acc, o) => acc + (o.final_value || 0), 0)
+  const ticketMedio = filteredOrders.length ? totalRevenue / filteredOrders.length : 0
 
-    return { totalRevenue, averageTicket, paidPercentage, avgMargin, defaultRate }
-  }, [filteredOrders])
+  const inadimplentes = filteredOrders.filter(
+    (o) => o.payment_status === 'pendente' || o.payment_status === 'vencido',
+  )
+  const inadimplentesValue = inadimplentes.reduce((acc, o) => acc + (o.final_value || 0), 0)
+  const inadimplentesCount = inadimplentes.length
 
-  const formatCurrency = (val?: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
+  const formatCurrency = (value?: number) => {
+    if (value === undefined || value === null) return 'R$ 0,00'
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
   }
 
-  const sendWhatsApp = (order: ServiceOrder) => {
-    const link = order.payment_link || 'Link não disponível'
-    const val = formatCurrency(order.final_value || 0)
-    const text = encodeURIComponent(
-      `Olá ${order.customer_name}, segue o resumo e link para pagamento do serviço de ${order.service_type}.
-💰 *Valor Final:* ${val}
-💳 *Link para pagamento:* ${link}
-
-Agradecemos a confiança em nossos serviços!`,
-    )
-    window.open(`https://wa.me/?text=${text}`, '_blank')
+  const formatMargin = (value?: number) => {
+    if (value === undefined || value === null) return '-'
+    return `${value}%`
   }
 
-  const handleRecurrence = async (order: ServiceOrder) => {
-    try {
-      await pb.collection('service_orders').create({
-        customer_name: order.customer_name,
-        service_type: order.service_type,
-        urgency: 'média',
-        sla_deadline: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
-        region: order.region,
-        status: 'novo',
-        has_pending_checklist: true,
-        description: `Manutenção preventiva gerada a partir da OS ${order.id}`,
-      })
-      toast({
-        title: 'Recorrência gerada',
-        description: 'Nova OS de preventiva criada com sucesso.',
-      })
-    } catch (e) {
-      toast({ title: 'Erro', description: 'Erro ao gerar recorrência.', variant: 'destructive' })
+  const handleCopy = (link: string) => {
+    navigator.clipboard.writeText(link)
+    toast({
+      title: 'Link copiado!',
+      description: 'O link de pagamento foi copiado para a área de transferência.',
+    })
+  }
+
+  const getPaymentBadge = (status?: string) => {
+    switch (status) {
+      case 'pago':
+        return (
+          <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-emerald-200">
+            Pago
+          </Badge>
+        )
+      case 'pendente':
+        return (
+          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200">
+            Pendente
+          </Badge>
+        )
+      case 'vencido':
+        return (
+          <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-200">Vencido</Badge>
+        )
+      default:
+        return <Badge variant="secondary">Não definido</Badge>
     }
   }
-
-  const submitPaymentProof = async () => {
-    if (!paymentFile || !selectedOrderForPayment) return
-    setUploading(true)
-    try {
-      const fd = new FormData()
-      fd.append('payment_proof', paymentFile)
-      await pb.collection('service_orders').update(selectedOrderForPayment.id, fd)
-      toast({ title: 'Sucesso', description: 'Comprovante anexado e pagamento registrado.' })
-      setSelectedOrderForPayment(null)
-      setPaymentFile(null)
-    } catch (err: any) {
-      const msg = err?.response?.message || 'Falha ao registrar pagamento'
-      toast({ title: 'Erro', description: msg, variant: 'destructive' })
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const technicians = useMemo(() => {
-    const unique = new Map()
-    orders.forEach((o) => {
-      if (o.expand?.technician) unique.set(o.technician, o.expand.technician.name)
-    })
-    return Array.from(unique.entries())
-  }, [orders])
-
-  const serviceTypes = useMemo(() => {
-    return Array.from(new Set(orders.map((o) => o.service_type).filter(Boolean)))
-  }, [orders])
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full pb-10">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Financeiro Operacional</h2>
-        <p className="text-muted-foreground">Acompanhamento de receitas, margens e inadimplência</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Financeiro Operacional</h1>
+        <p className="text-muted-foreground">
+          Monitore a saúde financeira, margens de lucro e inadimplência das ordens concluídas.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Receita Total</CardTitle>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Faturamento Total</CardTitle>
+            <DollarSign className="w-4 h-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">
-              {formatCurrency(kpis.totalRevenue)}
-            </div>
+            <div className="text-2xl font-bold text-slate-900">{formatCurrency(totalRevenue)}</div>
+            <p className="text-xs text-slate-500 mt-1">Baseado nas OSs concluídas e filtradas</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Ticket Médio</CardTitle>
+
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
+            <Activity className="w-4 h-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">
-              {formatCurrency(kpis.averageTicket)}
-            </div>
+            <div className="text-2xl font-bold text-slate-900">{formatCurrency(ticketMedio)}</div>
+            <p className="text-xs text-slate-500 mt-1">Média por OS concluída</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Pagamentos em Dia</CardTitle>
+
+        <Card className="shadow-sm border-red-100">
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium text-red-700">Inadimplentes</CardTitle>
+            <AlertCircle className="w-4 h-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-slate-900">
-              {kpis.paidPercentage.toFixed(1)}%
+            <div className="text-2xl font-bold text-red-600">
+              {formatCurrency(inadimplentesValue)}
             </div>
+            <p className="text-xs text-red-600/80 mt-1">
+              {inadimplentesCount} OS(s) com pagamento pendente ou vencido
+            </p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Margem Operacional</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div
-              className={cn(
-                'text-2xl font-bold',
-                kpis.avgMargin < 0 ? 'text-red-600' : 'text-slate-900',
-              )}
+      </div>
+
+      <Card className="shadow-sm">
+        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50/50 rounded-lg">
+          <div>
+            <label className="text-xs font-medium text-slate-600 mb-1.5 block">
+              Período de Conclusão
+            </label>
+            <Select
+              value={filters.period}
+              onValueChange={(v) => setFilters((p) => ({ ...p, period: v }))}
             >
-              {kpis.avgMargin.toFixed(1)}%
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Inadimplência</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div
-              className={cn(
-                'text-2xl font-bold',
-                kpis.defaultRate > 10 ? 'text-red-600' : 'text-slate-900',
-              )}
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder="Selecione" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">Últimos 7 dias</SelectItem>
+                <SelectItem value="30">Últimos 30 dias</SelectItem>
+                <SelectItem value="90">Últimos 90 dias</SelectItem>
+                <SelectItem value="all">Todo o período</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-600 mb-1.5 block">Técnico</label>
+            <Select
+              value={filters.technician}
+              onValueChange={(v) => setFilters((p) => ({ ...p, technician: v }))}
             >
-              {kpis.defaultRate.toFixed(1)}%
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Técnicos</SelectItem>
+                {users.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-      <div className="bg-white p-4 rounded-lg border shadow-sm flex flex-col md:flex-row gap-4">
-        <div className="flex-1">
-          <Label className="text-xs mb-1 block">Período</Label>
-          <Select value={period.toString()} onValueChange={(v) => setPeriod(Number(v))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Últimos 7 dias</SelectItem>
-              <SelectItem value="30">Últimos 30 dias</SelectItem>
-              <SelectItem value="90">Últimos 90 dias</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex-1">
-          <Label className="text-xs mb-1 block">Status Pgto.</Label>
-          <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="pago">Pago</SelectItem>
-              <SelectItem value="pendente">Pendente</SelectItem>
-              <SelectItem value="vencido">Vencido</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex-1">
-          <Label className="text-xs mb-1 block">Técnico</Label>
-          <Select value={techFilter} onValueChange={setTechFilter}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {technicians.map(([id, name]) => (
-                <SelectItem key={id} value={id}>
-                  {name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex-1">
-          <Label className="text-xs mb-1 block">Tipo de Serviço</Label>
-          <Select value={serviceTypeFilter} onValueChange={setServiceTypeFilter}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {serviceTypes.map((st) => (
-                <SelectItem key={st} value={st}>
-                  {st}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex-1">
-          <Label className="text-xs mb-1 block">Margem</Label>
-          <Select value={marginFilter} onValueChange={setMarginFilter}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="alta">Alta (&gt; 15%)</SelectItem>
-              <SelectItem value="baixa">Baixa (0 - 15%)</SelectItem>
-              <SelectItem value="negativa">Negativa (&lt; 0%)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+          <div>
+            <label className="text-xs font-medium text-slate-600 mb-1.5 block">
+              Tipo de Serviço
+            </label>
+            <Select
+              value={filters.serviceType}
+              onValueChange={(v) => setFilters((p) => ({ ...p, serviceType: v }))}
+            >
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Serviços</SelectItem>
+                {serviceTypes.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+      <div className="rounded-md border bg-white overflow-hidden shadow-sm">
         <Table>
           <TableHeader className="bg-slate-50">
             <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Valor</TableHead>
-              <TableHead>Status Pgto</TableHead>
-              <TableHead>Margem (Prev / Real)</TableHead>
-              <TableHead>Conclusão</TableHead>
+              <TableHead className="w-[250px]">Cliente / OS</TableHead>
               <TableHead>Serviço</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              <TableHead>Valor Final</TableHead>
+              <TableHead>Margens</TableHead>
+              <TableHead>Status Pgto.</TableHead>
+              <TableHead className="text-right">Link de Pagamento</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredOrders.length === 0 ? (
+            {loading ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-slate-500">
-                  Nenhum registro encontrado para os filtros atuais.
+                <TableCell colSpan={6} className="h-32 text-center">
+                  <div className="flex flex-col items-center justify-center space-y-2">
+                    <Skeleton className="h-4 w-64" />
+                    <Skeleton className="h-4 w-48" />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : filteredOrders.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                  Nenhuma ordem financeira encontrada para os filtros selecionados.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredOrders.map((o) => (
-                <TableRow key={o.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-slate-900">{o.customer_name}</span>
-                      {customerDelays[o.customer_name] >= 3 && (
-                        <Badge
-                          variant="destructive"
-                          className="h-5 px-1.5 text-[10px] uppercase gap-1 bg-red-100 text-red-700 hover:bg-red-100 border-none"
-                        >
-                          <AlertTriangle className="w-3 h-3" /> Risco
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{formatCurrency(o.final_value)}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        o.payment_status === 'pago'
-                          ? 'default'
-                          : o.payment_status === 'vencido'
-                            ? 'destructive'
-                            : 'secondary'
-                      }
-                      className={cn(
-                        o.payment_status === 'pago' &&
-                          'bg-green-100 text-green-700 hover:bg-green-100 border-none',
-                        o.payment_status === 'pendente' &&
-                          'bg-amber-100 text-amber-700 hover:bg-amber-100 border-none',
-                        o.payment_status === 'vencido' &&
-                          'bg-red-100 text-red-700 hover:bg-red-100 border-none',
-                        'capitalize',
-                      )}
-                    >
-                      {o.payment_status || 'pendente'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-slate-500">{o.planned_margin ?? '-'}%</span>
-                      <span className="text-slate-300">/</span>
-                      <span
-                        className={cn(
-                          'font-semibold',
-                          (o.actual_margin || 0) < 0 ? 'text-red-600' : 'text-emerald-600',
+              filteredOrders.map((order) => {
+                const isLowerMargin =
+                  typeof order.actual_margin === 'number' &&
+                  typeof order.planned_margin === 'number' &&
+                  order.actual_margin < order.planned_margin
+
+                return (
+                  <TableRow key={order.id} className="hover:bg-slate-50/50">
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-slate-900">{order.customer_name}</span>
+                        <span className="text-xs text-slate-500 uppercase tracking-wider">
+                          ID: {order.id.slice(0, 8)}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{order.service_type}</span>
+                        <span className="text-xs text-slate-500">
+                          {order.expand?.technician?.name || 'Sem Técnico'}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col items-start gap-1.5">
+                        <span className="font-semibold text-slate-900">
+                          {formatCurrency(order.final_value)}
+                        </span>
+                        {order.is_recurring && (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] h-5 px-1.5 bg-blue-50 text-blue-700 border-blue-200"
+                          >
+                            <RefreshCw className="w-3 h-3 mr-1" /> Recorrente
+                          </Badge>
                         )}
-                      >
-                        {o.actual_margin ?? '-'}%
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-slate-500">
-                    {o.finished_at ? new Date(o.finished_at).toLocaleDateString('pt-BR') : '-'}
-                  </TableCell>
-                  <TableCell className="text-slate-500">{o.service_type}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-slate-500 hover:text-slate-900"
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => sendWhatsApp(o)}>
-                          <Send className="w-4 h-4 mr-2 text-green-600" /> Enviar WhatsApp
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            toast({
-                              title: 'Fatura reenviada',
-                              description: 'A fatura foi reenviada ao cliente.',
-                            })
-                          }}
-                        >
-                          <RefreshCw className="w-4 h-4 mr-2 text-blue-600" /> Reenviar Fatura
-                        </DropdownMenuItem>
-                        {o.payment_status !== 'pago' && (
-                          <DropdownMenuItem onClick={() => setSelectedOrderForPayment(o)}>
-                            <FileUp className="w-4 h-4 mr-2 text-emerald-600" /> Registrar Pagamento
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleRecurrence(o)}>
-                          <CalendarDays className="w-4 h-4 mr-2 text-indigo-600" /> Gerar
-                          Recorrência
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1 bg-slate-50 p-2 rounded border border-slate-100">
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-500">Prevista:</span>
+                          <span className="font-medium text-slate-700">
+                            {formatMargin(order.planned_margin)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-slate-500">Real:</span>
+                          <span
+                            className={cn(
+                              'font-bold',
+                              isLowerMargin ? 'text-red-600' : 'text-emerald-600',
+                            )}
+                          >
+                            {formatMargin(order.actual_margin)}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getPaymentBadge(order.payment_status)}</TableCell>
+                    <TableCell className="text-right">
+                      {order.payment_link ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCopy(order.payment_link!)}
+                            className="h-8 text-xs font-medium"
+                          >
+                            <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar
+                          </Button>
+                          <a
+                            href={order.payment_link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                            title="Abrir link"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 text-xs italic">Sem link gerado</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>
       </div>
-
-      <Dialog
-        open={!!selectedOrderForPayment}
-        onOpenChange={(v) => !v && setSelectedOrderForPayment(null)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Registrar Pagamento Manual</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label>Comprovante (Imagem/PDF)</Label>
-              <Input
-                type="file"
-                accept="image/*,application/pdf"
-                onChange={(e) => setPaymentFile(e.target.files?.[0] || null)}
-              />
-              <p className="text-xs text-slate-500">
-                Ao enviar o comprovante, o status será atualizado para "Pago" automaticamente.
-              </p>
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setSelectedOrderForPayment(null)}
-                disabled={uploading}
-              >
-                Cancelar
-              </Button>
-              <Button onClick={submitPaymentProof} disabled={uploading || !paymentFile}>
-                {uploading ? 'Enviando...' : 'Salvar Pagamento'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
