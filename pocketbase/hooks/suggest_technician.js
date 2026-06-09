@@ -1,58 +1,98 @@
 routerAdd(
-  'GET',
-  '/backend/v1/service-orders/{id}/suggest-technician',
+  'POST',
+  '/backend/v1/service-orders/{id}/assign',
   (e) => {
     try {
       const osId = e.request.pathValue('id')
-      const os = $app.findRecordById('service_orders', osId)
 
-      const techs = $app.findRecordsByFilter('users', "status != 'ocupado'", '', 100, 0)
+      let resultData = null
 
-      if (techs.length === 0) return e.json(200, { suggested_id: null })
+      $app.runInTransaction((txApp) => {
+        const os = txApp.findRecordById('service_orders', osId)
 
-      let best = null
-      let bestScore = -9999
-
-      for (const t of techs) {
-        let score = 0
-
-        if (t.getString('region') === os.getString('region')) score += 50
-
-        let loadHours = 0
-        try {
-          const activeOrders = $app.findRecordsByFilter(
-            'service_orders',
-            `technician = '${t.id}' && status != 'concluído' && status != 'faturado'`,
-            '',
-            100,
-            0,
-          )
-          loadHours = activeOrders.reduce(
-            (sum, o) => sum + (o.getFloat('predicted_duration_hours') || 0),
-            0,
-          )
-        } catch (_) {}
-
-        const capacity = t.getFloat('capacity_diaria_hours') || 8
-        score -= (loadHours / capacity) * 30
-
-        if (t.getFloat('current_lat') && os.getFloat('lat')) {
-          const dLat = t.getFloat('current_lat') - os.getFloat('lat')
-          const dLng = t.getFloat('current_lng') - os.getFloat('lng')
-          const dist = Math.sqrt(dLat * dLat + dLng * dLng)
-          score -= dist * 10
+        if (os.getString('technician')) {
+          resultData = { assigned: false, reason: 'Already assigned' }
+          return
         }
 
-        if (score > bestScore) {
-          bestScore = score
-          best = t
-        }
-      }
+        const duration = os.getFloat('predicted_duration_hours') || 1.0
 
-      return e.json(200, {
-        suggested_id: best ? best.id : null,
-        name: best ? best.getString('name') : null,
+        // Find available techs
+        const techs = txApp.findRecordsByFilter('users', "status != 'ocupado'", '', 100, 0)
+
+        let bestTech = null
+        let shortestDist = 999999
+
+        for (const t of techs) {
+          const capacity = t.getFloat('capacity_diaria_hours') || 8.0
+          const currentOccupancy = t.getFloat('occupancy_current_hours') || 0.0
+
+          if (currentOccupancy + duration > capacity) {
+            continue
+          }
+
+          let dist = 0
+          if (t.getFloat('current_lat') && os.getFloat('lat')) {
+            const dLat = t.getFloat('current_lat') - os.getFloat('lat')
+            const dLng = t.getFloat('current_lng') - os.getFloat('lng')
+            dist = Math.sqrt(dLat * dLat + dLng * dLng)
+          }
+
+          if (dist < shortestDist) {
+            shortestDist = dist
+            bestTech = t
+          }
+        }
+
+        const logsCollection = txApp.findCollectionByNameOrId('automation_logs')
+
+        if (!bestTech) {
+          const log = new Record(logsCollection)
+          log.set('webhook_type', 'auto_assignment')
+          log.set('service_order', os.id)
+          log.set('action_taken', 'Assign Technician')
+          log.set('result', 'Failed')
+          log.set(
+            'details',
+            JSON.stringify({
+              reason: 'All qualified technicians are at full capacity or unavailable.',
+            }),
+          )
+          txApp.save(log)
+
+          resultData = { assigned: false, reason: 'No capacity' }
+          return
+        }
+
+        os.set('technician', bestTech.id)
+        os.set('status', 'agendado')
+        txApp.save(os)
+
+        bestTech.set(
+          'occupancy_current_hours',
+          (bestTech.getFloat('occupancy_current_hours') || 0) + duration,
+        )
+        txApp.save(bestTech)
+
+        const log = new Record(logsCollection)
+        log.set('webhook_type', 'auto_assignment')
+        log.set('service_order', os.id)
+        log.set('action_taken', 'Assign Technician')
+        log.set('result', 'Success')
+        log.set(
+          'details',
+          JSON.stringify({
+            technician: bestTech.id,
+            technician_name: bestTech.getString('name'),
+            distance: shortestDist,
+          }),
+        )
+        txApp.save(log)
+
+        resultData = { assigned: true, technician: bestTech.id, name: bestTech.getString('name') }
       })
+
+      return e.json(200, resultData)
     } catch (err) {
       return e.badRequestError(err.message)
     }

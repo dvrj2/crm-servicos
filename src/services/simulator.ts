@@ -178,3 +178,60 @@ export const confirmPayment = async (osId: string) => {
   })
   return os
 }
+
+export const simulateBulkAssignment = async () => {
+  const techs = await pb.collection('users').getFullList()
+  const activeTechs = techs.slice(0, 3)
+
+  if (activeTechs.length < 3) {
+    throw new Error('Necessário pelo menos 3 técnicos cadastrados para a simulação.')
+  }
+
+  const capacities = [8, 6, 4]
+  const locations = [
+    { lat: -23.5505, lng: -46.6333 }, // Centro
+    { lat: -23.6, lng: -46.65 }, // Sul
+    { lat: -23.5, lng: -46.6 }, // Norte
+  ]
+
+  for (let i = 0; i < 3; i++) {
+    await pb.collection('users').update(activeTechs[i].id, {
+      capacity_diaria_hours: capacities[i],
+      occupancy_current_hours: 0,
+      current_lat: locations[i].lat,
+      current_lng: locations[i].lng,
+      status: 'disponível',
+    })
+  }
+
+  const orders = []
+  for (let i = 0; i < 10; i++) {
+    const baseLoc = locations[i % 3]
+    const os = await pb.collection('service_orders').create({
+      customer_name: `Cliente Bulk ${i + 1}`,
+      service_type: 'Manutenção',
+      urgency: 'média',
+      sla_deadline: new Date(Date.now() + 86400000).toISOString(),
+      status: 'novo',
+      payment_status: 'pendente',
+      description: `Ordem de serviço gerada em massa ${i + 1}`,
+      origin: 'sistema',
+      predicted_duration_hours: 2,
+      lat: baseLoc.lat + (Math.random() - 0.5) * 0.05,
+      lng: baseLoc.lng + (Math.random() - 0.5) * 0.05,
+    })
+    orders.push(os)
+  }
+
+  const promises = orders.map(async (os) => {
+    try {
+      const res = await pb.send(`/backend/v1/service-orders/${os.id}/assign`, { method: 'POST' })
+      return { os, success: true, data: res }
+    } catch (e) {
+      return { os, success: false, error: e }
+    }
+  })
+
+  const results = await Promise.all(promises)
+  return { orders, results }
+}
