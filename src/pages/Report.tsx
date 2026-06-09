@@ -6,7 +6,6 @@ import {
   getOrderPhotos,
   getChecklistItems,
   getExecutionByOrderId,
-  generateAIReport,
   updateExecutionOrder,
 } from '@/services/execution'
 import pb from '@/lib/pocketbase/client'
@@ -150,16 +149,23 @@ export default function Report() {
   const handleGenerateAI = async () => {
     setGenerating(true)
     try {
-      const checklistStr = checklists
-        .map((c) => `- ${c.task_description}: ${c.is_completed ? 'OK' : 'Pendente'}`)
+      const materialsString = materialsList
+        .map((m) => `${m.name || m.description || m}: ${m.quantity || m.qtd || 1}`)
         .join('\n')
-      const notes = execution?.technical_report || order.technical_observations || ''
-      const res = await generateAIReport(order.description, notes, checklistStr)
-      setReportText(res)
+      const res = await pb.send('/backend/v1/generate-report', {
+        method: 'POST',
+        body: JSON.stringify({
+          order_id: order.id,
+          materials_used: materialsString,
+        }),
+      })
+
+      setReportText(res.report)
       toast({
         title: 'Laudo Gerado',
-        description: 'O laudo foi gerado por IA com sucesso. Revise antes de salvar.',
+        description: 'O laudo foi gerado por IA e salvo com sucesso.',
       })
+      loadData()
     } catch (err) {
       toast({ title: 'Erro', description: 'Falha ao gerar o laudo.', variant: 'destructive' })
     } finally {
@@ -286,6 +292,22 @@ export default function Report() {
                 </p>
               </div>
             )}
+            {order.diagnosis && (
+              <div>
+                <span className="text-slate-500 block">Diagnóstico Técnico</span>
+                <p className="mt-1 text-slate-700 bg-slate-50 p-2 rounded border border-slate-100 whitespace-pre-wrap">
+                  {order.diagnosis}
+                </p>
+              </div>
+            )}
+            {order.activities_performed && (
+              <div>
+                <span className="text-slate-500 block">Atividades Realizadas</span>
+                <p className="mt-1 text-slate-700 bg-slate-50 p-2 rounded border border-slate-100 whitespace-pre-wrap">
+                  {order.activities_performed}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -294,16 +316,18 @@ export default function Report() {
             <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
               <FileText className="w-5 h-5 text-slate-500" /> Laudo Técnico Final
             </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerateAI}
-              disabled={generating}
-              className="print:hidden border-indigo-200 text-indigo-700 hover:bg-indigo-50"
-            >
-              <Wand2 className="w-4 h-4 mr-2" />
-              {generating ? 'Gerando...' : 'Auto-Gerar'}
-            </Button>
+            {(order.status === 'executando' || order.status === 'concluído') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateAI}
+                disabled={generating}
+                className="print:hidden border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+              >
+                <Wand2 className="w-4 h-4 mr-2" />
+                {generating ? 'Gerando...' : 'Gerar Laudo'}
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="flex-1 flex flex-col">
             <Textarea

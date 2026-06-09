@@ -280,10 +280,32 @@ Podemos seguir com a aprovação? Aguardamos seu retorno para agendar.`
                 <Label>Descrição e Escopo</Label>
                 <Textarea
                   readOnly
-                  className="min-h-[120px] resize-none bg-slate-50 border-slate-200 text-slate-700"
+                  className="min-h-[80px] resize-none bg-slate-50 border-slate-200 text-slate-700"
                   value={order.description || 'Nenhuma descrição fornecida.'}
                 />
               </div>
+
+              {order.diagnosis && (
+                <div className="space-y-3">
+                  <Label>Diagnóstico Técnico</Label>
+                  <Textarea
+                    readOnly
+                    className="min-h-[80px] resize-none bg-slate-50 border-slate-200 text-slate-700"
+                    value={order.diagnosis}
+                  />
+                </div>
+              )}
+
+              {order.activities_performed && (
+                <div className="space-y-3">
+                  <Label>Atividades Realizadas</Label>
+                  <Textarea
+                    readOnly
+                    className="min-h-[80px] resize-none bg-slate-50 border-slate-200 text-slate-700"
+                    value={order.activities_performed}
+                  />
+                </div>
+              )}
 
               <div className="text-xs text-slate-400 border-t pt-4">
                 Criado em {new Date(order.created).toLocaleString('pt-BR')}
