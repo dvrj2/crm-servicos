@@ -2,6 +2,7 @@ import { ServiceOrder } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { useNavigate } from 'react-router-dom'
 import { Clock, CalendarDays, FileWarning } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -11,6 +12,7 @@ interface KanbanCardProps {
 }
 
 export function KanbanCard({ order, onClick }: KanbanCardProps) {
+  const navigate = useNavigate()
   const getSLAStatus = () => {
     if (!order.sla_deadline)
       return {
@@ -79,7 +81,10 @@ export function KanbanCard({ order, onClick }: KanbanCardProps) {
           e.target.style.opacity = '1'
         }
       }}
-      onClick={() => onClick(order)}
+      onClick={() => {
+        onClick(order)
+        navigate(`/order/${order.id}`)
+      }}
       className={cn(
         'cursor-grab active:cursor-grabbing mb-3 border-l-4 transition-all hover:shadow-md',
         sla.border,

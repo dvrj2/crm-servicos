@@ -8,6 +8,30 @@ export type OrderStatus =
   | 'executando'
   | 'concluído'
 
+export interface Customer {
+  id: string
+  name: string
+  phone?: string
+  address?: string
+  lat?: number
+  lng?: number
+  tipo_cliente?: 'residencial' | 'comercial' | 'industrial'
+  created: string
+  updated: string
+}
+
+export interface ServiceOrderMessage {
+  id: string
+  service_order: string
+  sender: string
+  message: string
+  created: string
+  updated: string
+  expand?: {
+    sender?: User
+  }
+}
+
 export interface User {
   id: string
   name: string
@@ -103,6 +127,7 @@ export interface ServiceOrder {
   recurrence_config?: string
   expand?: {
     technician?: User
+    customer?: Customer
   }
 }
 

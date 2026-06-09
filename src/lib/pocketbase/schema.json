@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T17:52:05.251Z",
+  "generatedAt": "2026-06-09T18:01:37.026Z",
   "collections": [
     {
       "name": "users",
@@ -921,6 +921,57 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "service_order_messages",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && sender = @request.auth.id",
+        "delete": "@request.auth.id != '' && sender = @request.auth.id"
+      },
+      "fields": [
+        {
+          "name": "service_order",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "service_orders"
+        },
+        {
+          "name": "sender",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_so_msg_order ON service_order_messages (service_order)",
+        "CREATE INDEX idx_so_msg_sender ON service_order_messages (sender)"
+      ]
     }
   ]
 }
