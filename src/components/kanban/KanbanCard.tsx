@@ -2,7 +2,7 @@ import { ServiceOrder } from '@/types'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Clock, CalendarDays, ListChecks } from 'lucide-react'
+import { Clock, CalendarDays, FileWarning } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface KanbanCardProps {
@@ -12,6 +12,14 @@ interface KanbanCardProps {
 
 export function KanbanCard({ order, onClick }: KanbanCardProps) {
   const getSLAStatus = () => {
+    if (!order.sla_deadline)
+      return {
+        label: 'Sem SLA',
+        color: 'text-slate-500',
+        border: 'border-l-slate-300',
+        pulse: false,
+      }
+
     const deadline = new Date(order.sla_deadline).getTime()
     const now = new Date().getTime()
     const diff = deadline - now
@@ -22,14 +30,14 @@ export function KanbanCard({ order, onClick }: KanbanCardProps) {
         label: 'Atrasado',
         color: 'text-red-600',
         pulse: true,
-        border: 'border-l-red-500 bg-red-50/50',
+        border: 'border-l-red-600 bg-red-50/50',
       }
     if (hoursRemaining < 1)
       return {
         label: `${Math.round(hoursRemaining * 60)}m rest`,
-        color: 'text-red-500',
+        color: 'text-red-600',
         pulse: true,
-        border: 'border-l-red-500 bg-red-50/30',
+        border: 'border-l-red-600 bg-red-50/30',
       }
     if (hoursRemaining < 2)
       return {
@@ -46,11 +54,10 @@ export function KanbanCard({ order, onClick }: KanbanCardProps) {
     }
   }
 
-  const urgencyColors = {
-    critica: 'bg-red-200 text-red-900 hover:bg-red-300 border-red-300 font-bold',
-    alta: 'bg-red-100 text-red-700 hover:bg-red-200 border-red-200',
-    media: 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200',
-    baixa: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200',
+  const urgencyColors: Record<string, string> = {
+    crítica: 'bg-red-200 text-red-900 border-red-300 font-bold',
+    média: 'bg-amber-100 text-amber-700 border-amber-200',
+    baixa: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   }
 
   const sla = getSLAStatus()
@@ -95,7 +102,10 @@ export function KanbanCard({ order, onClick }: KanbanCardProps) {
           </div>
           <Badge
             variant="outline"
-            className={cn('ml-2 px-1.5 py-0 text-[10px] capitalize', urgencyColors[order.urgency])}
+            className={cn(
+              'ml-2 px-1.5 py-0 text-[10px] capitalize shrink-0',
+              urgencyColors[order.urgency] || 'bg-slate-100',
+            )}
           >
             {order.urgency}
           </Badge>
@@ -112,6 +122,13 @@ export function KanbanCard({ order, onClick }: KanbanCardProps) {
           <div className="flex items-center gap-2">
             {order.expand?.technician ? (
               <Avatar className="h-6 w-6">
+                {order.expand.technician.avatar && (
+                  <img
+                    src={`${import.meta.env.VITE_POCKETBASE_URL}/api/files/users/${order.expand.technician.id}/${order.expand.technician.avatar}`}
+                    alt={order.expand.technician.name}
+                    className="h-full w-full object-cover rounded-full"
+                  />
+                )}
                 <AvatarFallback className="text-[10px] bg-slate-200 text-slate-700">
                   {order.expand.technician.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
@@ -128,19 +145,18 @@ export function KanbanCard({ order, onClick }: KanbanCardProps) {
                 {new Date(order.scheduled_date).toLocaleDateString('pt-BR', {
                   day: '2-digit',
                   month: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
                 })}
               </div>
             )}
           </div>
 
-          <div
-            className={cn(
-              'flex items-center',
-              order.has_pending_checklist ? 'text-amber-500' : 'text-emerald-500',
-            )}
-          >
-            <ListChecks className="w-4 h-4" />
-          </div>
+          {order.has_pending_checklist && (
+            <div className="text-amber-500" title="Checklist Pendente">
+              <FileWarning className="w-4 h-4" />
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

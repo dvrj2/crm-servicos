@@ -4,10 +4,10 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface KanbanColumnProps {
-  status: OrderStatus
+  status: string
   title: string
   orders: ServiceOrder[]
-  onDrop: (orderId: string, status: OrderStatus) => void
+  onDrop: (orderId: string, status: string) => void
   onCardClick: (order: ServiceOrder) => void
 }
 

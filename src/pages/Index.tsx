@@ -1,9 +1,9 @@
-import { useEffect, useState, useMemo } from 'react'
-import { getServiceOrders, getTechnicians, updateOrderStatus } from '@/services/api'
-import { ServiceOrder, User, OrderStatus } from '@/types'
-import { useRealtime } from '@/hooks/use-realtime'
+import { useState, useEffect, useMemo } from 'react'
 import { KanbanBoard } from '@/components/kanban/KanbanBoard'
-import { OrderDetailModal } from '@/components/kanban/OrderDetailModal'
+import { ServiceOrder, User } from '@/types'
+import { getServiceOrders, getTechnicians, updateOrder } from '@/services/api'
+import { useRealtime } from '@/hooks/use-realtime'
+import { useNavigate } from 'react-router-dom'
 import {
   Select,
   SelectContent,
@@ -11,35 +11,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
 
 export default function Index() {
   const [orders, setOrders] = useState<ServiceOrder[]>([])
   const [technicians, setTechnicians] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedOrder, setSelectedOrder] = useState<ServiceOrder | null>(null)
-  const { toast } = useToast()
+  const navigate = useNavigate()
 
-  // Filters
-  const [fTech, setFTech] = useState<string>('_all')
-  const [fUrg, setFUrg] = useState<string>('_all')
-  const [fReg, setFReg] = useState<string>('_all')
-  const [fType, setFType] = useState<string>('_all')
+  // filters
+  const [techFilter, setTechFilter] = useState('all')
+  const [urgencyFilter, setUrgencyFilter] = useState('all')
+  const [regionFilter, setRegionFilter] = useState('all')
+  const [slaFilter, setSlaFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState('all')
 
   const loadData = async () => {
     try {
-      const [oData, tData] = await Promise.all([getServiceOrders(), getTechnicians()])
-      setOrders(oData)
-      setTechnicians(tData)
-    } catch (err) {
-      toast({
-        title: 'Erro de Conexão',
-        description: 'Não foi possível carregar os dados.',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
+      const [fetchedOrders, fetchedTechs] = await Promise.all([
+        getServiceOrders(),
+        getTechnicians(),
+      ])
+      setOrders(fetchedOrders)
+      setTechnicians(fetchedTechs)
+    } catch (e) {
+      console.error('Failed to load data', e)
     }
   }
 
@@ -51,16 +45,7 @@ export default function Index() {
     loadData()
   })
 
-  const filteredOrders = useMemo(() => {
-    return orders.filter((o) => {
-      if (fTech !== '_all' && o.technician !== fTech) return false
-      if (fUrg !== '_all' && o.urgency !== fUrg) return false
-      if (fReg !== '_all' && o.region !== fReg) return false
-      if (fType !== '_all' && o.service_type !== fType) return false
-      return true
-    })
-  }, [orders, fTech, fUrg, fReg, fType])
-
+  // get unique values for filters
   const regions = useMemo(
     () => Array.from(new Set(orders.map((o) => o.region).filter(Boolean))),
     [orders],
@@ -70,41 +55,64 @@ export default function Index() {
     [orders],
   )
 
-  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
-    const order = orders.find((o) => o.id === orderId)
-    if (!order || order.status === newStatus) return
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      if (techFilter !== 'all' && o.technician !== techFilter) return false
+      if (urgencyFilter !== 'all' && o.urgency !== urgencyFilter) return false
+      if (regionFilter !== 'all' && o.region !== regionFilter) return false
+      if (typeFilter !== 'all' && o.service_type !== typeFilter) return false
 
-    // Optimistic update
-    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)))
+      if (slaFilter !== 'all' && o.sla_deadline) {
+        const deadline = new Date(o.sla_deadline).getTime()
+        const now = new Date().getTime()
+        const diff = deadline - now
+        if (slaFilter === 'atrasado' && diff >= 0) return false
+        if (slaFilter === 'critico' && (diff < 0 || diff > 60 * 60 * 1000)) return false
+      }
+
+      return true
+    })
+  }, [orders, techFilter, urgencyFilter, regionFilter, slaFilter, typeFilter])
+
+  const handleStatusChange = async (orderId: string, newColumnId: string) => {
+    let updates: Partial<ServiceOrder> = {}
+    if (newColumnId === 'faturado') {
+      updates = { status: 'concluído', payment_status: 'pago' }
+    } else if (newColumnId === 'concluído') {
+      updates = { status: 'concluído', payment_status: 'pendente' }
+    } else {
+      updates = { status: newColumnId as any }
+    }
+
+    // optimistic update
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...updates } : o)))
 
     try {
-      await updateOrderStatus(orderId, newStatus)
-    } catch (err) {
-      // Revert on failure
+      await updateOrder(orderId, updates)
+    } catch (e) {
       loadData()
-      toast({ title: 'Erro', description: 'Não foi possível mover a OS.', variant: 'destructive' })
     }
   }
 
-  return (
-    <div className="h-full flex flex-col">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            Visão Geral da Operação
-          </h2>
-          <p className="text-sm text-slate-500">
-            Acompanhe e gerencie ordens de serviço em tempo real.
-          </p>
-        </div>
+  const handleCardClick = (order: ServiceOrder) => {
+    navigate(`/execution/${order.id}`)
+  }
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Select value={fTech} onValueChange={setFTech}>
-            <SelectTrigger className="w-[180px] bg-white">
-              <SelectValue placeholder="Técnico" />
+  return (
+    <div className="flex flex-col h-full space-y-4 p-4 md:p-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Painel Operacional</h1>
+      </div>
+
+      <div className="flex flex-wrap gap-4 bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+        <div className="w-[200px]">
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Técnico</label>
+          <Select value={techFilter} onValueChange={setTechFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos os Técnicos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="_all">Todos os Técnicos</SelectItem>
+              <SelectItem value="all">Todos os Técnicos</SelectItem>
               {technicians.map((t) => (
                 <SelectItem key={t.id} value={t.id}>
                   {t.name}
@@ -112,26 +120,31 @@ export default function Index() {
               ))}
             </SelectContent>
           </Select>
+        </div>
 
-          <Select value={fUrg} onValueChange={setFUrg}>
-            <SelectTrigger className="w-[120px] bg-white text-xs">
-              <SelectValue placeholder="Urgência" />
+        <div className="w-[150px]">
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Urgência</label>
+          <Select value={urgencyFilter} onValueChange={setUrgencyFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todas" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="_all">Todas Urgências</SelectItem>
-              <SelectItem value="critica">Crítica</SelectItem>
-              <SelectItem value="alta">Alta</SelectItem>
-              <SelectItem value="media">Média</SelectItem>
+              <SelectItem value="all">Todas</SelectItem>
               <SelectItem value="baixa">Baixa</SelectItem>
+              <SelectItem value="média">Média</SelectItem>
+              <SelectItem value="crítica">Crítica</SelectItem>
             </SelectContent>
           </Select>
+        </div>
 
-          <Select value={fReg} onValueChange={setFReg}>
-            <SelectTrigger className="w-[120px] bg-white text-xs">
-              <SelectValue placeholder="Região" />
+        <div className="w-[150px]">
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Região</label>
+          <Select value={regionFilter} onValueChange={setRegionFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todas" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="_all">Todas Regiões</SelectItem>
+              <SelectItem value="all">Todas</SelectItem>
               {regions.map((r) => (
                 <SelectItem key={r} value={r}>
                   {r}
@@ -139,13 +152,30 @@ export default function Index() {
               ))}
             </SelectContent>
           </Select>
+        </div>
 
-          <Select value={fType} onValueChange={setFType}>
-            <SelectTrigger className="w-[120px] bg-white text-xs">
-              <SelectValue placeholder="Serviço" />
+        <div className="w-[150px]">
+          <label className="text-xs font-medium text-slate-500 mb-1 block">SLA</label>
+          <Select value={slaFilter} onValueChange={setSlaFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="_all">Todos Serviços</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="atrasado">Atrasados</SelectItem>
+              <SelectItem value="critico">Críticos (&lt; 1h)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="w-[200px]">
+          <label className="text-xs font-medium text-slate-500 mb-1 block">Tipo de Serviço</label>
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger>
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
               {serviceTypes.map((st) => (
                 <SelectItem key={st} value={st}>
                   {st}
@@ -153,45 +183,16 @@ export default function Index() {
               ))}
             </SelectContent>
           </Select>
-
-          {(fTech !== '_all' || fUrg !== '_all' || fReg !== '_all' || fType !== '_all') && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setFTech('_all')
-                setFUrg('_all')
-                setFReg('_all')
-                setFType('_all')
-              }}
-              className="text-xs"
-            >
-              Limpar
-            </Button>
-          )}
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 relative">
-        {loading ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : (
-          <KanbanBoard
-            orders={filteredOrders}
-            onStatusChange={handleStatusChange}
-            onCardClick={setSelectedOrder}
-          />
-        )}
+      <div className="flex-1 overflow-hidden min-h-[500px]">
+        <KanbanBoard
+          orders={filteredOrders}
+          onStatusChange={handleStatusChange}
+          onCardClick={handleCardClick}
+        />
       </div>
-
-      <OrderDetailModal
-        order={selectedOrder}
-        technicians={technicians}
-        onClose={() => setSelectedOrder(null)}
-        onUpdate={loadData}
-      />
     </div>
   )
 }
