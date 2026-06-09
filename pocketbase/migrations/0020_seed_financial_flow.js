@@ -123,7 +123,7 @@ migrate(
         so.set('customer', customerIds[oData.customer_idx])
         so.set('customer_name', customersData[oData.customer_idx].name)
         so.set('service_type', oData.service_type)
-        so.set('status', 'em_andamento') // bypass hook validation temporariamente
+        so.set('status', 'pendente') // bypass hook validation temporariamente
         so.set('urgency', 'média')
         so.set('sla_deadline', date5DaysAgo)
         so.set('scheduled_date', date5DaysAgo)
