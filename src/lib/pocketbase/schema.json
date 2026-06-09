@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T13:08:55.842Z",
+  "generatedAt": "2026-06-09T13:21:14.088Z",
   "collections": [
     {
       "name": "users",
@@ -316,6 +316,12 @@
           "type": "number",
           "required": false,
           "system": false
+        },
+        {
+          "name": "is_recurring",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -424,6 +430,53 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "service_feedback",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "service_order",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "service_orders"
+        },
+        {
+          "name": "nps_score",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "complaint_description",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_sf_so ON service_feedback (service_order)"]
     }
   ]
 }

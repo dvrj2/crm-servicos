@@ -20,6 +20,7 @@ import {
   LogOut,
   CalendarDays,
   DollarSign,
+  LineChart,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Input } from '@/components/ui/input'
@@ -106,6 +107,18 @@ export default function Layout() {
                       <Link to="/reports">
                         <FileBarChart />
                         <span>Relatórios</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/indicators'}
+                      tooltip="Indicadores Estratégicos"
+                    >
+                      <Link to="/indicators">
+                        <LineChart />
+                        <span>Indicadores</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

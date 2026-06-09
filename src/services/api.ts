@@ -1,5 +1,5 @@
 import pb from '@/lib/pocketbase/client'
-import { ServiceOrder, User, ServiceOrderPhoto } from '@/types'
+import { ServiceOrder, User, ServiceOrderPhoto, ServiceFeedback } from '@/types'
 
 export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
   return (await pb.collection('service_orders').getFullList({
@@ -37,4 +37,14 @@ export const getOrderPhotos = async (orderId: string): Promise<ServiceOrderPhoto
   return (await pb.collection('service_order_photos').getFullList({
     filter: `service_order = "${orderId}"`,
   })) as ServiceOrderPhoto[]
+}
+
+export const getAllPhotos = async (): Promise<ServiceOrderPhoto[]> => {
+  return (await pb.collection('service_order_photos').getFullList()) as ServiceOrderPhoto[]
+}
+
+export const getServiceFeedbacks = async (): Promise<ServiceFeedback[]> => {
+  return (await pb.collection('service_feedback').getFullList({
+    expand: 'service_order',
+  })) as ServiceFeedback[]
 }

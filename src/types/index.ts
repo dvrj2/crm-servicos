@@ -61,12 +61,25 @@ export interface ServiceOrder {
   is_rework?: boolean
   total_distance_km?: number
   actual_duration_hours?: number
+  is_recurring?: boolean
   expand?: {
     technician?: User
   }
 }
 
 export type OperationalStatus = 'pending' | 'en_route' | 'in_progress' | 'paused' | 'completed'
+
+export interface ServiceFeedback {
+  id: string
+  service_order: string
+  nps_score: number
+  complaint_description?: string
+  created: string
+  updated: string
+  expand?: {
+    service_order?: ServiceOrder
+  }
+}
 
 export interface ServiceOrderPhoto {
   id: string
