@@ -21,7 +21,21 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { DollarSign, Copy, RefreshCw, ExternalLink, Activity, AlertCircle } from 'lucide-react'
+import {
+  DollarSign,
+  Copy,
+  RefreshCw,
+  ExternalLink,
+  Activity,
+  AlertCircle,
+  MoreHorizontal,
+} from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useToast } from '@/hooks/use-toast'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
@@ -120,6 +134,21 @@ export default function Finance() {
     })
   }
 
+  const updateFinancialStatus = async (orderId: string, status: string) => {
+    try {
+      const fin = await pb.collection('financials').getFirstListItem(`service_order = "${orderId}"`)
+      await pb.collection('financials').update(fin.id, { payment_status: status })
+      toast({ title: 'Sucesso', description: `Status de pagamento atualizado para ${status}` })
+      loadData()
+    } catch (err) {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível atualizar o status financeiro.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const getPaymentBadge = (status?: string) => {
     switch (status) {
       case 'pago':
@@ -137,6 +166,10 @@ export default function Finance() {
       case 'vencido':
         return (
           <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-200">Vencido</Badge>
+        )
+      case 'erro':
+        return (
+          <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-200">Erro</Badge>
         )
       default:
         return <Badge variant="secondary">Não definido</Badge>
@@ -278,6 +311,7 @@ export default function Finance() {
               <TableHead>Margens</TableHead>
               <TableHead>Status Pgto.</TableHead>
               <TableHead className="text-right">Link de Pagamento</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -382,6 +416,24 @@ export default function Finance() {
                       ) : (
                         <span className="text-slate-400 text-xs italic">Sem link gerado</span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Abrir menu</span>
+                            <MoreHorizontal className="h-4 w-4 text-slate-500" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => updateFinancialStatus(order.id, 'pago')}>
+                            Marcar como Pago
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateFinancialStatus(order.id, 'erro')}>
+                            Sinalizar Erro
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 )

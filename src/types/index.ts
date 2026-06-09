@@ -3,12 +3,15 @@ export type OrderStatus =
   | 'novo'
   | 'qualificado'
   | 'orçamento'
+  | 'aguardando cliente'
   | 'aprovado'
   | 'agendado'
   | 'executando'
   | 'concluído'
+  | 'faturado'
   | 'cancelado'
   | 'duplicado'
+  | 'risco'
 
 export interface Customer {
   id: string
@@ -49,7 +52,7 @@ export interface User {
   operational_status?: 'available' | 'en_route' | 'busy'
 }
 
-export type PaymentStatus = 'pago' | 'pendente' | 'vencido'
+export type PaymentStatus = 'pago' | 'pendente' | 'vencido' | 'erro'
 
 export interface Quote {
   id: string
@@ -130,6 +133,7 @@ export interface ServiceOrder {
   technical_report?: string
   recurrence_config?: string
   parent_order?: string
+  ultimo_contato?: string
   expand?: {
     technician?: User
     customer?: Customer

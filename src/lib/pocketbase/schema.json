@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T21:51:31.956Z",
+  "generatedAt": "2026-06-09T22:32:24.688Z",
   "collections": [
     {
       "name": "users",
@@ -163,7 +163,10 @@
             "executando",
             "concluído",
             "cancelado",
-            "duplicado"
+            "duplicado",
+            "aguardando cliente",
+            "risco",
+            "faturado"
           ]
         },
         {
@@ -423,6 +426,12 @@
           "required": false,
           "system": false,
           "collectionRef": "service_orders"
+        },
+        {
+          "name": "ultimo_contato",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -894,7 +903,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["pendente", "pago"]
+          "selectValues": ["pendente", "pago", "erro"]
         },
         {
           "name": "payment_method",

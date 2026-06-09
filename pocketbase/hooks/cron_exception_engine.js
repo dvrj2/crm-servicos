@@ -152,6 +152,52 @@ cronAdd('exception_engine', '*/5 * * * *', () => {
     }
   } catch (err) {}
 
+  // 11. Customer Follow-up Exception (Script 7)
+  try {
+    const threshold = new Date(Date.now() - 48 * 3600000).toISOString()
+    const waitingQuotes = $app.findRecordsByFilter(
+      'service_orders',
+      `status = 'orçamento' && ultimo_contato != '' && ultimo_contato <= '${threshold}'`,
+      '',
+      100,
+      0,
+    )
+    for (const os of waitingQuotes) {
+      os.set('status', 'aguardando cliente')
+      $app.save(os)
+
+      const log = new Record($app.findCollectionByNameOrId('automation_logs'))
+      log.set('webhook_type', 'EXCEPTION')
+      log.set('service_order', os.id)
+      log.set('action_taken', 'Customer Follow-up needed (Threshold exceeded)')
+      log.set('result', 'Success')
+      $app.save(log)
+    }
+  } catch (err) {}
+
+  // 12. Technician Delay Governance (Script 8)
+  try {
+    const now = new Date().toISOString()
+    const delayedOs = $app.findRecordsByFilter(
+      'service_orders',
+      `status = 'agendado' && scheduled_date != '' && scheduled_date < '${now}' && operational_status != 'en_route' && operational_status != 'in_progress'`,
+      '',
+      100,
+      0,
+    )
+    for (const os of delayedOs) {
+      os.set('status', 'risco')
+      $app.save(os)
+
+      const log = new Record($app.findCollectionByNameOrId('automation_logs'))
+      log.set('webhook_type', 'EXCEPTION')
+      log.set('service_order', os.id)
+      log.set('action_taken', 'verificar atraso')
+      log.set('result', 'Warning')
+      $app.save(log)
+    }
+  } catch (err) {}
+
   // 10. SLA Breach (Impending)
   try {
     const activeOs = $app.findRecordsByFilter(

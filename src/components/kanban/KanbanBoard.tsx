@@ -2,6 +2,9 @@ import { ServiceOrder, OrderStatus } from '@/types'
 import { KanbanColumn } from './KanbanColumn'
 import { useToast } from '@/hooks/use-toast'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { memo, useCallback } from 'react'
+
+const MemoizedColumn = memo(KanbanColumn)
 
 interface KanbanBoardProps {
   orders: ServiceOrder[]
@@ -13,8 +16,10 @@ const COLUMNS = [
   { id: 'novo', title: 'Novo' },
   { id: 'qualificado', title: 'Qualificado' },
   { id: 'orçamento', title: 'Orçamento' },
+  { id: 'aguardando cliente', title: 'Aguardando Cliente' },
   { id: 'aprovado', title: 'Aprovado' },
   { id: 'agendado', title: 'Agendado' },
+  { id: 'risco', title: 'Em Risco' },
   { id: 'executando', title: 'Em Execução' },
   { id: 'concluído', title: 'Concluído' },
   { id: 'faturado', title: 'Faturado' },
@@ -23,17 +28,20 @@ const COLUMNS = [
 export function KanbanBoard({ orders, onStatusChange, onCardClick }: KanbanBoardProps) {
   const { toast } = useToast()
 
-  const handleDrop = async (orderId: string, status: string) => {
-    try {
-      await Promise.resolve(onStatusChange(orderId, status))
-    } catch (err: any) {
-      toast({
-        title: 'Não foi possível mover o card',
-        description: getErrorMessage(err),
-        variant: 'destructive',
-      })
-    }
-  }
+  const handleDrop = useCallback(
+    async (orderId: string, status: string) => {
+      try {
+        await Promise.resolve(onStatusChange(orderId, status))
+      } catch (err: any) {
+        toast({
+          title: 'Não foi possível mover o card',
+          description: getErrorMessage(err),
+          variant: 'destructive',
+        })
+      }
+    },
+    [onStatusChange, toast],
+  )
 
   return (
     <div className="flex h-full w-full gap-4 overflow-x-auto pb-4 pt-1 snap-x">
@@ -49,7 +57,7 @@ export function KanbanBoard({ orders, onStatusChange, onCardClick }: KanbanBoard
 
         return (
           <div key={col.id} className="snap-center h-full">
-            <KanbanColumn
+            <MemoizedColumn
               status={col.id as any}
               title={col.title}
               orders={colOrders}

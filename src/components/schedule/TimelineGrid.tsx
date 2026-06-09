@@ -2,6 +2,9 @@ import { User, ServiceOrder } from '@/types'
 import { TimelineCell } from './TimelineCell'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { memo } from 'react'
+
+const MemoizedCell = memo(TimelineCell)
 
 interface Props {
   techs: User[]
@@ -74,7 +77,7 @@ export function TimelineGrid({ techs, weekDates, orders, onDropOS }: Props) {
             </div>
             {weekDates.map((date: Date, i: number) => (
               <div key={i} className="flex-1 min-w-[180px]">
-                <TimelineCell tech={tech} date={date} orders={orders} onDropOS={onDropOS} />
+                <MemoizedCell tech={tech} date={date} orders={orders} onDropOS={onDropOS} />
               </div>
             ))}
           </div>

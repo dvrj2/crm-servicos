@@ -57,6 +57,7 @@ export default function Execution() {
 
   const [reworkDialogOpen, setReworkDialogOpen] = useState(false)
   const [isRedrawing, setIsRedrawing] = useState(false)
+  const [isOffline, setIsOffline] = useState(!navigator.onLine)
 
   const [materials, setMaterials] = useState('')
   const [observations, setObservations] = useState('')
@@ -107,6 +108,58 @@ export default function Execution() {
   useEffect(() => {
     loadData()
   }, [id, user?.id])
+
+  useEffect(() => {
+    const syncOfflineData = async () => {
+      if (!navigator.onLine) return
+
+      const cl = JSON.parse(localStorage.getItem('offlineChecklists') || '{}')
+      for (const [itemId, checked] of Object.entries(cl)) {
+        try {
+          await updateChecklistItem(itemId, checked as boolean)
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+      localStorage.removeItem('offlineChecklists')
+
+      const ph = JSON.parse(localStorage.getItem('offlinePhotos') || '[]')
+      for (const photo of ph) {
+        try {
+          const res = await fetch(photo.file)
+          const blob = await res.blob()
+          const file = new File([blob], photo.filename, { type: photo.type })
+          await uploadPhoto(photo.orderId, file, photo.stage as 'before' | 'after')
+        } catch {
+          /* intentionally ignored */
+        }
+      }
+      localStorage.removeItem('offlinePhotos')
+
+      if (Object.keys(cl).length > 0 || ph.length > 0) {
+        toast({ title: 'Sincronizado', description: 'Dados offline foram enviados ao servidor.' })
+        loadData()
+      }
+    }
+
+    const handleOnline = () => {
+      setIsOffline(false)
+      syncOfflineData()
+    }
+    const handleOffline = () => setIsOffline(true)
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    if (navigator.onLine) {
+      syncOfflineData()
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   const captureLocation = () => {
     if (navigator.geolocation && user?.id) {
@@ -267,8 +320,43 @@ export default function Execution() {
     stage: 'before' | 'after',
   ) => {
     if (!order || !e.target.files || e.target.files.length === 0) return
+    const file = e.target.files[0]
+
+    if (isOffline) {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        const base64 = ev.target?.result
+        const offlinePhotos = JSON.parse(localStorage.getItem('offlinePhotos') || '[]')
+        offlinePhotos.push({
+          orderId: order.id,
+          stage,
+          file: base64,
+          filename: file.name,
+          type: file.type,
+        })
+        localStorage.setItem('offlinePhotos', JSON.stringify(offlinePhotos))
+        toast({
+          title: 'Offline',
+          description: 'Foto salva localmente. Será enviada quando online.',
+        })
+
+        // Mock UI update
+        const mockPhoto: ServiceOrderPhoto = {
+          id: `local-${Date.now()}`,
+          service_order: order.id,
+          file: base64 as string,
+          stage,
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+        }
+        setPhotos((prev) => [...prev, mockPhoto])
+      }
+      reader.readAsDataURL(file)
+      return
+    }
+
     try {
-      await uploadPhoto(order.id, e.target.files[0], stage)
+      await uploadPhoto(order.id, file, stage)
       loadData()
     } catch {
       toast({ title: 'Erro', description: 'Falha ao enviar foto.', variant: 'destructive' })
@@ -308,7 +396,12 @@ export default function Execution() {
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mr-2">
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="text-xl font-bold flex-1 truncate">Execução: {order.customer_name}</h1>
+        <div className="flex-1 truncate">
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            Execução: {order.customer_name}
+            {isOffline && <Badge variant="destructive">Offline</Badge>}
+          </h1>
+        </div>
         <Badge
           variant={opStatus === 'completed' ? 'default' : 'secondary'}
           className="ml-2 capitalize"
@@ -389,8 +482,23 @@ export default function Execution() {
                   checked={item.is_completed}
                   disabled={opStatus === 'completed'}
                   onCheckedChange={async (c) => {
-                    await updateChecklistItem(item.id, !!c)
-                    loadData()
+                    const checked = !!c
+                    if (isOffline) {
+                      const offlineChecklists = JSON.parse(
+                        localStorage.getItem('offlineChecklists') || '{}',
+                      )
+                      offlineChecklists[item.id] = checked
+                      localStorage.setItem('offlineChecklists', JSON.stringify(offlineChecklists))
+                      setChecklists((prev) =>
+                        prev.map((ch) =>
+                          ch.id === item.id ? { ...ch, is_completed: checked } : ch,
+                        ),
+                      )
+                      toast({ title: 'Offline', description: 'Checklist salvo localmente.' })
+                    } else {
+                      await updateChecklistItem(item.id, checked)
+                      loadData()
+                    }
                   }}
                 />
                 <label
@@ -422,7 +530,7 @@ export default function Execution() {
                   className="relative group w-20 h-20 rounded-md overflow-hidden border shadow-sm"
                 >
                   <img
-                    src={pb.files.getURL(p, p.file)}
+                    src={p.id.startsWith('local-') ? p.file : pb.files.getURL(p, p.file)}
                     alt="Before"
                     className="w-full h-full object-cover"
                   />
@@ -477,7 +585,7 @@ export default function Execution() {
                   className="relative group w-20 h-20 rounded-md overflow-hidden border shadow-sm"
                 >
                   <img
-                    src={pb.files.getURL(p, p.file)}
+                    src={p.id.startsWith('local-') ? p.file : pb.files.getURL(p, p.file)}
                     alt="After"
                     className="w-full h-full object-cover"
                   />
