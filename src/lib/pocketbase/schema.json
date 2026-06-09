@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T12:24:55.061Z",
+  "generatedAt": "2026-06-09T12:33:51.300Z",
   "collections": [
     {
       "name": "users",
@@ -37,6 +37,24 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "capacity_diaria_hours",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "current_lat",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "current_lng",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -140,12 +158,39 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "predicted_duration_hours",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estimated_travel_hours",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lat",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "lng",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_so_status ON service_orders (status)",
         "CREATE INDEX idx_so_region ON service_orders (region)",
-        "CREATE INDEX idx_so_technician ON service_orders (technician)"
+        "CREATE INDEX idx_so_technician ON service_orders (technician)",
+        "CREATE INDEX `idx_so_lat` ON `service_orders` (lat)",
+        "CREATE INDEX `idx_so_lng` ON `service_orders` (lng)",
+        "CREATE INDEX `idx_so_scheduled_date` ON `service_orders` (scheduled_date)"
       ]
     }
   ]

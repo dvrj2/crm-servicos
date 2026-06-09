@@ -14,6 +14,9 @@ export interface User {
   name: string
   avatar: string
   email: string
+  capacity_diaria_hours?: number
+  current_lat?: number
+  current_lng?: number
 }
 
 export interface ServiceOrder {
@@ -30,6 +33,10 @@ export interface ServiceOrder {
   description: string
   created: string
   updated: string
+  predicted_duration_hours?: number
+  estimated_travel_hours?: number
+  lat?: number
+  lng?: number
   expand?: {
     technician?: User
   }

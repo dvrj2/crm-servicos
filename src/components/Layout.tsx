@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, Link, useLocation } from 'react-router-dom'
 import {
   SidebarProvider,
   Sidebar,
@@ -11,7 +11,15 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from '@/components/ui/sidebar'
-import { Bell, LayoutDashboard, Search, Users, FileBarChart, LogOut } from 'lucide-react'
+import {
+  Bell,
+  LayoutDashboard,
+  Search,
+  Users,
+  FileBarChart,
+  LogOut,
+  CalendarDays,
+} from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Input } from '@/components/ui/input'
 import {
@@ -25,6 +33,7 @@ import { Button } from '@/components/ui/button'
 
 export default function Layout() {
   const { user, signOut } = useAuth()
+  const location = useLocation()
 
   const getInitials = (name: string) => (name ? name.substring(0, 2).toUpperCase() : 'U')
 
@@ -40,9 +49,27 @@ export default function Layout() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton isActive tooltip="Painel Kanban">
-                      <LayoutDashboard />
-                      <span>Painel Kanban</span>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/'}
+                      tooltip="Painel Kanban"
+                    >
+                      <Link to="/">
+                        <LayoutDashboard />
+                        <span>Painel Kanban</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/schedule'}
+                      tooltip="Agenda"
+                    >
+                      <Link to="/schedule">
+                        <CalendarDays />
+                        <span>Agenda</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
