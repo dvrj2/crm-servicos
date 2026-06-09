@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T13:21:14.088Z",
+  "generatedAt": "2026-06-09T13:44:45.209Z",
   "collections": [
     {
       "name": "users",
@@ -55,6 +55,25 @@
           "type": "number",
           "required": false,
           "system": false
+        },
+        {
+          "name": "region",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "certifications",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["active", "inactive"]
         }
       ],
       "indexes": [
@@ -320,6 +339,48 @@
         {
           "name": "is_recurring",
           "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "origin",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "category",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estimated_materials",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "suggested_price",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "displacement_min",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "technical_report",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recurrence_config",
+          "type": "text",
           "required": false,
           "system": false
         }

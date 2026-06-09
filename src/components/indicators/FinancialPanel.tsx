@@ -2,7 +2,16 @@ import { KPI } from './KPI'
 import { AlertCircle, Wallet, CreditCard } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell } from 'recharts'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  Cell,
+  ComposedChart,
+} from 'recharts'
 import { format, parseISO } from 'date-fns'
 
 export function FinancialPanel({ metrics, orders }: any) {
@@ -26,6 +35,30 @@ export function FinancialPanel({ metrics, orders }: any) {
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n)
   const recurringCount = orders.filter((o: any) => o.is_recurring).length
 
+  // Budget precision "Boxplot" surrogate (Range bar min-max)
+  const precisionDataMap: Record<string, { planned: number[]; actual: number[] }> = {}
+  orders.forEach((o: any) => {
+    if (o.service_type && o.planned_margin && o.actual_margin) {
+      const st = o.service_type
+      if (!precisionDataMap[st]) precisionDataMap[st] = { planned: [], actual: [] }
+      precisionDataMap[st].planned.push(o.planned_margin)
+      precisionDataMap[st].actual.push(o.actual_margin)
+    }
+  })
+
+  const boxplotData = Object.entries(precisionDataMap)
+    .map(([category, vals]) => {
+      const avgPlanned = vals.planned.reduce((a, b) => a + b, 0) / vals.planned.length
+      const avgActual = vals.actual.reduce((a, b) => a + b, 0) / vals.actual.length
+      return {
+        category,
+        range: [Math.min(...vals.actual), Math.max(...vals.actual)],
+        avgPlanned,
+        avgActual,
+      }
+    })
+    .slice(0, 5)
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -46,8 +79,8 @@ export function FinancialPanel({ metrics, orders }: any) {
         <KPI title="Serviços Recorrentes" value={recurringCount.toString()} icon={<CreditCard />} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="shadow-sm lg:col-span-2">
           <CardHeader>
             <CardTitle>Receita ao Longo do Tempo</CardTitle>
           </CardHeader>
@@ -72,32 +105,36 @@ export function FinancialPanel({ metrics, orders }: any) {
 
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Análise de Margem Global</CardTitle>
+            <CardTitle>Precisão Orçamentária (Boxplot)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ChartContainer config={{ value: { label: 'Valor', color: 'hsl(var(--primary))' } }}>
+              <ChartContainer
+                config={{
+                  range: { label: 'Range', color: 'hsl(var(--muted))' },
+                  avgActual: { label: 'Real', color: 'hsl(var(--primary))' },
+                }}
+              >
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={marginData} layout="vertical">
+                  <ComposedChart data={boxplotData} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                     <XAxis type="number" />
-                    <YAxis dataKey="name" type="category" width={100} />
+                    <YAxis dataKey="category" type="category" width={80} tick={{ fontSize: 10 }} />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                      {marginData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={
-                            index === 0
-                              ? 'hsl(var(--muted-foreground))'
-                              : entry.value < marginData[0].value
-                                ? 'hsl(var(--destructive))'
-                                : 'hsl(var(--primary))'
-                          }
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
+                    <Bar
+                      dataKey="range"
+                      fill="var(--color-range)"
+                      radius={4}
+                      barSize={20}
+                      opacity={0.3}
+                    />
+                    <Bar
+                      dataKey="avgActual"
+                      fill="var(--color-avgActual)"
+                      radius={4}
+                      barSize={10}
+                    />
+                  </ComposedChart>
                 </ResponsiveContainer>
               </ChartContainer>
             </div>

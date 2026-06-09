@@ -24,6 +24,10 @@ import { updateOrder, deleteOrder } from '@/services/api'
 import { useToast } from '@/hooks/use-toast'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import { Calculator } from 'lucide-react'
+import pb from '@/lib/pocketbase/client'
 
 interface OrderDetailModalProps {
   order: ServiceOrder | null
@@ -42,13 +46,54 @@ export function OrderDetailModal({ order, technicians, onClose, onUpdate }: Orde
   const [tech, setTech] = useState<string>('')
   const [checklist, setChecklist] = useState<boolean>(false)
 
+  // Budget
+  const [predictedHours, setPredictedHours] = useState<number>(0)
+  const [plannedMargin, setPlannedMargin] = useState<number>(0)
+  const [suggestedPrice, setSuggestedPrice] = useState<number>(0)
+
   useEffect(() => {
     if (order) {
       setStatus(order.status)
       setTech(order.technician || '')
       setChecklist(order.has_pending_checklist)
+      setPredictedHours(order.predicted_duration_hours || 0)
+      setPlannedMargin(order.planned_margin || 0)
+      setSuggestedPrice(order.suggested_price || 0)
     }
   }, [order])
+
+  const calculateBudget = () => {
+    const hourlyRate = 150
+    const baseCost = predictedHours * hourlyRate
+    const price = baseCost * (1 + plannedMargin / 100)
+    setSuggestedPrice(price)
+  }
+
+  const handleWhatsAppBudget = () => {
+    if (!order) return
+    const text = `Olá ${order.customer_name}! Segue a estimativa para o serviço de ${order.service_type}.\n\nValor Sugerido: R$ ${suggestedPrice.toFixed(2)}\n\nPodemos aprovar?`
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+  }
+
+  const handleSuggestTech = async () => {
+    if (!order) return
+    try {
+      const res = await pb.send(`/backend/v1/service-orders/${order.id}/suggest-technician`, {
+        method: 'GET',
+      })
+      if (res.suggested_id) {
+        setTech(res.suggested_id)
+        toast({
+          title: 'Técnico Sugerido',
+          description: `Técnico ${res.name} selecionado automaticamente.`,
+        })
+      } else {
+        toast({ title: 'Aviso', description: 'Nenhum técnico disponível encontrado.' })
+      }
+    } catch (e) {
+      toast({ title: 'Erro', description: 'Falha ao buscar sugestão.', variant: 'destructive' })
+    }
+  }
 
   if (!order) return null
 
@@ -110,117 +155,170 @@ export function OrderDetailModal({ order, technicians, onClose, onUpdate }: Orde
         </SheetHeader>
 
         <ScrollArea className="flex-1 p-6">
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
-                <span className="text-slate-500 flex items-center gap-1">
-                  <Wrench className="w-3 h-3" /> Serviço
-                </span>
-                <span className="font-medium text-slate-900">{order.service_type}</span>
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="details">Detalhes</TabsTrigger>
+              <TabsTrigger value="budget">Orçamento</TabsTrigger>
+            </TabsList>
+            <TabsContent value="details" className="space-y-6 mt-0">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <span className="text-slate-500 flex items-center gap-1">
+                    <Wrench className="w-3 h-3" /> Serviço
+                  </span>
+                  <span className="font-medium text-slate-900">{order.service_type}</span>
+                </div>
+                <div className="flex flex-col gap-1 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <span className="text-slate-500 flex items-center gap-1">
+                    <MapPin className="w-3 h-3" /> Região
+                  </span>
+                  <span className="font-medium text-slate-900">
+                    {order.region || 'Não informada'}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <span className="text-slate-500 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> SLA Prazo
+                  </span>
+                  <span className="font-medium text-slate-900">
+                    {new Date(order.sla_deadline).toLocaleString('pt-BR')}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <span className="text-slate-500 flex items-center gap-1">
+                    <CalendarDays className="w-3 h-3" /> Agendamento
+                  </span>
+                  <span className="font-medium text-slate-900">
+                    {order.scheduled_date
+                      ? new Date(order.scheduled_date).toLocaleDateString('pt-BR')
+                      : 'Não agendado'}
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col gap-1 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
-                <span className="text-slate-500 flex items-center gap-1">
-                  <MapPin className="w-3 h-3" /> Região
-                </span>
-                <span className="font-medium text-slate-900">
-                  {order.region || 'Não informada'}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
-                <span className="text-slate-500 flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> SLA Prazo
-                </span>
-                <span className="font-medium text-slate-900">
-                  {new Date(order.sla_deadline).toLocaleString('pt-BR')}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
-                <span className="text-slate-500 flex items-center gap-1">
-                  <CalendarDays className="w-3 h-3" /> Agendamento
-                </span>
-                <span className="font-medium text-slate-900">
-                  {order.scheduled_date
-                    ? new Date(order.scheduled_date).toLocaleDateString('pt-BR')
-                    : 'Não agendado'}
-                </span>
-              </div>
-            </div>
 
-            <div className="space-y-3">
-              <Label>Status da OS</Label>
-              <Select value={status} onValueChange={(v: OrderStatus) => setStatus(v)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione o status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="novo">Novo</SelectItem>
-                  <SelectItem value="qualificado">Qualificado</SelectItem>
-                  <SelectItem value="orcamento">Orçamento</SelectItem>
-                  <SelectItem value="aprovado">Aprovado</SelectItem>
-                  <SelectItem value="agendado">Agendado</SelectItem>
-                  <SelectItem value="execucao">Em Execução</SelectItem>
-                  <SelectItem value="concluido">Concluído</SelectItem>
-                  <SelectItem value="faturado">Faturado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-3">
+                <Label>Status da OS</Label>
+                <Select value={status} onValueChange={(v: OrderStatus) => setStatus(v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione o status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="novo">Novo</SelectItem>
+                    <SelectItem value="qualificado">Qualificado</SelectItem>
+                    <SelectItem value="orcamento">Orçamento</SelectItem>
+                    <SelectItem value="aprovado">Aprovado</SelectItem>
+                    <SelectItem value="agendado">Agendado</SelectItem>
+                    <SelectItem value="execucao">Em Execução</SelectItem>
+                    <SelectItem value="concluido">Concluído</SelectItem>
+                    <SelectItem value="faturado">Faturado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-3">
-              <Label>Técnico Responsável</Label>
-              <Select value={tech} onValueChange={setTech}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Atribuir a um técnico..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Nenhum técnico (Remover atribuição)</SelectItem>
-                  {technicians.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-5 w-5">
-                          <AvatarFallback className="text-[10px]">
-                            {getInitials(t.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        {t.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Técnico Responsável</Label>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-xs"
+                    onClick={handleSuggestTech}
+                  >
+                    Auto-atribuir (Smart)
+                  </Button>
+                </div>
+                <Select value={tech} onValueChange={setTech}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Atribuir a um técnico..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Nenhum técnico (Remover atribuição)</SelectItem>
+                    {technicians.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-5 w-5">
+                            <AvatarFallback className="text-[10px]">
+                              {getInitials(t.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          {t.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex items-center space-x-2 border p-3 rounded-lg bg-slate-50/50">
-              <Checkbox
-                id="checklist"
-                checked={checklist}
-                onCheckedChange={(c) => setChecklist(!!c)}
-              />
-              <div className="grid gap-1.5 leading-none">
-                <label
-                  htmlFor="checklist"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              <div className="flex items-center space-x-2 border p-3 rounded-lg bg-slate-50/50">
+                <Checkbox
+                  id="checklist"
+                  checked={checklist}
+                  onCheckedChange={(c) => setChecklist(!!c)}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="checklist"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Pendências de Checklist
+                  </label>
+                  <p className="text-xs text-slate-500">
+                    Marque se houverem itens obrigatórios pendentes na execução do serviço.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Descrição e Escopo</Label>
+                <Textarea
+                  readOnly
+                  className="min-h-[120px] resize-none bg-slate-50 border-slate-200 text-slate-700"
+                  value={order.description || 'Nenhuma descrição fornecida.'}
+                />
+              </div>
+
+              <div className="text-xs text-slate-400 border-t pt-4">
+                Criado em {new Date(order.created).toLocaleString('pt-BR')}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="budget" className="space-y-6 mt-0">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Horas Previstas</Label>
+                  <Input
+                    type="number"
+                    value={predictedHours}
+                    onChange={(e) => setPredictedHours(Number(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Margem Planejada (%)</Label>
+                  <Input
+                    type="number"
+                    value={plannedMargin}
+                    onChange={(e) => setPlannedMargin(Number(e.target.value))}
+                  />
+                </div>
+                <Button variant="secondary" className="w-full" onClick={calculateBudget}>
+                  <Calculator className="w-4 h-4 mr-2" /> Calcular Preço Sugerido
+                </Button>
+                <div className="p-4 bg-slate-50 border rounded-lg flex items-center justify-between">
+                  <span className="font-medium text-slate-700">Preço Sugerido</span>
+                  <span className="text-xl font-bold text-slate-900">
+                    R$ {suggestedPrice.toFixed(2)}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full text-green-600 border-green-200 hover:bg-green-50"
+                  onClick={handleWhatsAppBudget}
                 >
-                  Pendências de Checklist
-                </label>
-                <p className="text-xs text-slate-500">
-                  Marque se houverem itens obrigatórios pendentes na execução do serviço.
-                </p>
+                  Enviar Orçamento via WhatsApp
+                </Button>
               </div>
-            </div>
-
-            <div className="space-y-3">
-              <Label>Descrição e Escopo</Label>
-              <Textarea
-                readOnly
-                className="min-h-[120px] resize-none bg-slate-50 border-slate-200 text-slate-700"
-                value={order.description || 'Nenhuma descrição fornecida.'}
-              />
-            </div>
-
-            <div className="text-xs text-slate-400 border-t pt-4">
-              Criado em {new Date(order.created).toLocaleString('pt-BR')}
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
         </ScrollArea>
 
         <div className="px-6 py-4 border-t bg-slate-50 flex items-center justify-between mt-auto">

@@ -24,6 +24,8 @@ export default function Index() {
   // Filters
   const [fTech, setFTech] = useState<string>('_all')
   const [fUrg, setFUrg] = useState<string>('_all')
+  const [fReg, setFReg] = useState<string>('_all')
+  const [fType, setFType] = useState<string>('_all')
 
   const loadData = async () => {
     try {
@@ -53,9 +55,20 @@ export default function Index() {
     return orders.filter((o) => {
       if (fTech !== '_all' && o.technician !== fTech) return false
       if (fUrg !== '_all' && o.urgency !== fUrg) return false
+      if (fReg !== '_all' && o.region !== fReg) return false
+      if (fType !== '_all' && o.service_type !== fType) return false
       return true
     })
-  }, [orders, fTech, fUrg])
+  }, [orders, fTech, fUrg, fReg, fType])
+
+  const regions = useMemo(
+    () => Array.from(new Set(orders.map((o) => o.region).filter(Boolean))),
+    [orders],
+  )
+  const serviceTypes = useMemo(
+    () => Array.from(new Set(orders.map((o) => o.service_type).filter(Boolean))),
+    [orders],
+  )
 
   const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     const order = orders.find((o) => o.id === orderId)
@@ -101,28 +114,58 @@ export default function Index() {
           </Select>
 
           <Select value={fUrg} onValueChange={setFUrg}>
-            <SelectTrigger className="w-[150px] bg-white">
+            <SelectTrigger className="w-[120px] bg-white text-xs">
               <SelectValue placeholder="Urgência" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="_all">Qualquer Urgência</SelectItem>
-              <SelectItem value="alta">Alta (Vermelho)</SelectItem>
-              <SelectItem value="media">Média (Amarelo)</SelectItem>
-              <SelectItem value="baixa">Baixa (Verde)</SelectItem>
+              <SelectItem value="_all">Todas Urgências</SelectItem>
+              <SelectItem value="alta">Alta</SelectItem>
+              <SelectItem value="media">Média</SelectItem>
+              <SelectItem value="baixa">Baixa</SelectItem>
             </SelectContent>
           </Select>
 
-          {(fTech !== '_all' || fUrg !== '_all') && (
+          <Select value={fReg} onValueChange={setFReg}>
+            <SelectTrigger className="w-[120px] bg-white text-xs">
+              <SelectValue placeholder="Região" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">Todas Regiões</SelectItem>
+              {regions.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {r}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={fType} onValueChange={setFType}>
+            <SelectTrigger className="w-[120px] bg-white text-xs">
+              <SelectValue placeholder="Serviço" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">Todos Serviços</SelectItem>
+              {serviceTypes.map((st) => (
+                <SelectItem key={st} value={st}>
+                  {st}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {(fTech !== '_all' || fUrg !== '_all' || fReg !== '_all' || fType !== '_all') && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
                 setFTech('_all')
                 setFUrg('_all')
+                setFReg('_all')
+                setFType('_all')
               }}
               className="text-xs"
             >
-              Limpar Filtros
+              Limpar
             </Button>
           )}
         </div>

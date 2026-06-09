@@ -17,6 +17,9 @@ export interface User {
   capacity_diaria_hours?: number
   current_lat?: number
   current_lng?: number
+  region?: string
+  certifications?: string
+  status?: 'active' | 'inactive'
 }
 
 export type PaymentStatus = 'pago' | 'pendente' | 'vencido'
@@ -62,6 +65,13 @@ export interface ServiceOrder {
   total_distance_km?: number
   actual_duration_hours?: number
   is_recurring?: boolean
+  origin?: string
+  category?: string
+  estimated_materials?: string
+  suggested_price?: number
+  displacement_min?: number
+  technical_report?: string
+  recurrence_config?: string
   expand?: {
     technician?: User
   }

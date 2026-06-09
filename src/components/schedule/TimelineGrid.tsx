@@ -38,9 +38,30 @@ export function TimelineGrid({ techs, weekDates, orders, onDropOS }: Props) {
             <div className="w-[200px] shrink-0 border-r border-slate-200 p-4 bg-white flex flex-col justify-center sticky left-0 z-10 shadow-[1px_0_0_0_#e2e8f0] transition-colors group-hover:bg-slate-50">
               <div className="font-semibold text-sm text-slate-800 truncate">{tech.name}</div>
               {tech.id ? (
-                <div className="text-xs text-slate-500 mt-1 font-medium bg-slate-100 w-fit px-2 py-0.5 rounded-full">
-                  Cap: {tech.capacity_diaria_hours || 8}h/dia
-                </div>
+                (() => {
+                  const totalHoursAssigned = orders
+                    .filter((o) => o.technician === tech.id)
+                    .reduce((acc, curr) => acc + (curr.predicted_duration_hours || 0), 0)
+                  const totalCapacity = (tech.capacity_diaria_hours || 8) * weekDates.length
+                  const occupancy =
+                    totalCapacity > 0 ? (totalHoursAssigned / totalCapacity) * 100 : 0
+                  const isOverloaded = occupancy > 85
+
+                  return (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-[10px] font-medium text-slate-500">
+                        <span>{Math.round(occupancy)}% Ocupação</span>
+                        <span>{tech.capacity_diaria_hours || 8}h/dia</span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${isOverloaded ? 'bg-red-500' : 'bg-primary'}`}
+                          style={{ width: `${Math.min(occupancy, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })()
               ) : (
                 <div className="text-xs text-slate-400 mt-1">Fila de Espera</div>
               )}
