@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T12:44:27.099Z",
+  "generatedAt": "2026-06-09T12:50:55.225Z",
   "collections": [
     {
       "name": "users",
@@ -247,6 +247,30 @@
         {
           "name": "actual_duration_hours",
           "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "diagnosis",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "activities_performed",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "current_condition",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "recommendations",
+          "type": "text",
           "required": false,
           "system": false
         }

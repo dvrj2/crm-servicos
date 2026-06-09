@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { CalendarDays, Clock, MapPin, Wrench, Trash2 } from 'lucide-react'
+import { CalendarDays, Clock, MapPin, Wrench, Trash2, FileText } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { updateOrder, deleteOrder } from '@/services/api'
@@ -233,6 +233,9 @@ export function OrderDetailModal({ order, technicians, onClose, onUpdate }: Orde
             <Trash2 className="w-4 h-4 mr-2" /> Excluir
           </Button>
           <div className="flex gap-2 flex-wrap justify-end">
+            <Button variant="outline" onClick={() => navigate(`/report/${order.id}`)}>
+              <FileText className="w-4 h-4 mr-2" /> Laudo
+            </Button>
             <Button variant="secondary" onClick={() => navigate(`/execution/${order.id}`)}>
               Executar Serviço
             </Button>

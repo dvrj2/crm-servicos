@@ -8,6 +8,22 @@
 @tailwind utilities;
 
 @layer base {
+  @media print {
+    body {
+      background: white;
+    }
+    .fixed.bottom-0 {
+      display: none !important;
+    }
+    nav,
+    header,
+    footer {
+      display: none !important;
+    }
+    button {
+      display: none !important;
+    }
+  }
   :root {
     /* Change the colors to match the design system */
     --background: 0 0% 100%;

@@ -31,6 +31,10 @@ export interface ServiceOrder {
   status: OrderStatus
   has_pending_checklist: boolean
   description: string
+  diagnosis?: string
+  activities_performed?: string
+  current_condition?: string
+  recommendations?: string
   created: string
   updated: string
   predicted_duration_hours?: number

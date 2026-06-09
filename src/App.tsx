@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import NotFound from './pages/NotFound'
 import Schedule from './pages/Schedule'
 import Execution from './pages/Execution'
+import Report from './pages/Report'
 import Layout from './components/Layout'
 import { AuthProvider } from './hooks/use-auth'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -25,6 +26,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/schedule" element={<Schedule />} />
               <Route path="/execution/:id" element={<Execution />} />
+              <Route path="/report/:id" element={<Report />} />
             </Route>
           </Route>
 
