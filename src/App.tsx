@@ -12,6 +12,7 @@ import Execution from './pages/Execution'
 import Report from './pages/Report'
 import Reports from './pages/Reports'
 import Technicians from './pages/Technicians'
+import EmpresariosPage from './pages/Empresarios'
 import Finance from './pages/Finance'
 import Indicators from './pages/Indicators'
 import LogsPage from './pages/Logs'
@@ -64,6 +65,7 @@ const App = () => (
                 <Route path="/report/:id" element={<Report />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/technicians" element={<Technicians />} />
+                <Route path="/empresarios" element={<EmpresariosPage />} />
                 <Route path="/finance" element={<Finance />} />
                 <Route path="/indicators" element={<Indicators />} />
                 <Route path="/logs" element={<LogsPage />} />

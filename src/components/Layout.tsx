@@ -22,6 +22,7 @@ import {
   DollarSign,
   LineChart,
   Activity,
+  Briefcase,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Input } from '@/components/ui/input'
@@ -72,6 +73,18 @@ export default function Layout() {
                       <Link to="/schedule">
                         <CalendarDays />
                         <span>Agenda</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/empresarios'}
+                      tooltip="Empresários"
+                    >
+                      <Link to="/empresarios">
+                        <Briefcase />
+                        <span>Empresários</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

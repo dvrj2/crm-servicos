@@ -186,6 +186,23 @@ export interface AutomationLog {
   }
 }
 
+export interface Empresario {
+  id: string
+  collectionId: string
+  collectionName: string
+  nome: string
+  cpf_cnpj: string
+  endereco?: string
+  telefone?: string
+  email: string
+  certificacoes?: string
+  area_de_atuacao?: string
+  documento_identificacao?: string
+  registro_profissional?: string
+  created: string
+  updated: string
+}
+
 export interface Financial {
   id: string
   execution: string

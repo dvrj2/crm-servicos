@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-09T22:32:24.688Z",
+  "generatedAt": "2026-06-15T21:56:41.586Z",
   "collections": [
     {
       "name": "users",
@@ -1062,6 +1062,88 @@
         }
       ],
       "indexes": []
+    },
+    {
+      "name": "empresarios",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cpf_cnpj",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "endereco",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "certificacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "area_de_atuacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "documento_identificacao",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "registro_profissional",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_empresarios_cpf_cnpj ON empresarios (cpf_cnpj)"]
     }
   ]
 }
