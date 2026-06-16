@@ -215,3 +215,20 @@ export interface Financial {
   created: string
   updated: string
 }
+
+export interface Tecnico {
+  id: string
+  nome: string
+  cpf: string
+  telefone?: string
+  email: string
+  regiao?: string
+  certificacoes?: string
+  capacidade_diaria_hours?: number
+  ocupacao_atual_horas?: number
+  status?: 'disponível' | 'a caminho' | 'em serviço'
+  habilidades?: string
+  custo_hora?: number
+  created: string
+  updated: string
+}
