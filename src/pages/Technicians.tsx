@@ -17,6 +17,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useRealtime } from '@/hooks/use-realtime'
 import { TecnicoForm } from '@/components/tecnicos/TecnicoForm'
 import { getTecnicos, createTecnico, updateTecnico, deleteTecnico } from '@/services/tecnicos'
+import { createUser } from '@/services/users'
+import { useAuth } from '@/hooks/use-auth'
 import type { Tecnico } from '@/types'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
@@ -26,6 +28,7 @@ export default function Technicians() {
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingTech, setEditingTech] = useState<Tecnico | null>(null)
+  const { user } = useAuth()
 
   const loadData = async () => {
     try {
@@ -66,14 +69,51 @@ export default function Technicians() {
     }
   }
 
-  const handleSubmit = async (data: Partial<Tecnico>) => {
+  const handleSubmit = async (data: Partial<Tecnico> & { senha?: string }) => {
     try {
       if (editingTech) {
-        await updateTecnico(editingTech.id, data)
+        const { senha, ...techData } = data
+        await updateTecnico(editingTech.id, techData)
         toast.success('Técnico atualizado com sucesso')
       } else {
-        await createTecnico(data)
-        toast.success('Técnico criado com sucesso')
+        if (!data.senha) {
+          toast.error('A senha é obrigatória para novos técnicos')
+          return
+        }
+
+        try {
+          await createUser({
+            email: data.email,
+            password: data.senha,
+            passwordConfirm: data.senha,
+            name: data.nome,
+            tipo_role: 'tecnico',
+            empresa_id: user?.empresa_id || user?.id,
+            ativo: true,
+          })
+        } catch (userErr: any) {
+          if (userErr?.response?.data?.email) {
+            toast.error('Este e-mail já está cadastrado.')
+            return
+          }
+          throw userErr
+        }
+
+        const { senha, ...techData } = data
+        try {
+          await createTecnico({
+            ...techData,
+            status: 'disponível',
+          })
+        } catch (techErr: any) {
+          if (techErr?.response?.data?.cpf) {
+            toast.error('Este CPF já está cadastrado.')
+            return
+          }
+          throw techErr
+        }
+
+        toast.success('Técnico cadastrado com sucesso!')
       }
       setIsModalOpen(false)
     } catch (err) {

@@ -24,6 +24,7 @@ const schema = z.object({
   nome: z.string().min(1, 'Nome é obrigatório'),
   cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, 'CPF inválido (ex: 111.111.111-11)'),
   email: z.string().email('E-mail inválido'),
+  senha: z.string().optional(),
   telefone: z.string().optional(),
   regiao: z.string().optional(),
   certificacoes: z.string().optional(),
@@ -38,7 +39,7 @@ type FormData = z.infer<typeof schema>
 
 interface TecnicoFormProps {
   initialData?: Tecnico | null
-  onSubmit: (data: Partial<Tecnico>) => Promise<void>
+  onSubmit: (data: Partial<Tecnico> & { senha?: string }) => Promise<void>
   onCancel: () => void
 }
 
@@ -49,6 +50,7 @@ export function TecnicoForm({ initialData, onSubmit, onCancel }: TecnicoFormProp
       nome: initialData?.nome || '',
       cpf: initialData?.cpf || '',
       email: initialData?.email || '',
+      senha: '',
       telefone: initialData?.telefone || '',
       regiao: initialData?.regiao || '',
       certificacoes: initialData?.certificacoes || '',
@@ -63,7 +65,7 @@ export function TecnicoForm({ initialData, onSubmit, onCancel }: TecnicoFormProp
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="nome"
@@ -90,8 +92,6 @@ export function TecnicoForm({ initialData, onSubmit, onCancel }: TecnicoFormProp
               </FormItem>
             )}
           />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="email"
@@ -105,6 +105,21 @@ export function TecnicoForm({ initialData, onSubmit, onCancel }: TecnicoFormProp
               </FormItem>
             )}
           />
+          {!initialData && (
+            <FormField
+              control={form.control}
+              name="senha"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Senha</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
           <FormField
             control={form.control}
             name="telefone"
@@ -118,8 +133,6 @@ export function TecnicoForm({ initialData, onSubmit, onCancel }: TecnicoFormProp
               </FormItem>
             )}
           />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="regiao"
@@ -155,8 +168,6 @@ export function TecnicoForm({ initialData, onSubmit, onCancel }: TecnicoFormProp
               </FormItem>
             )}
           />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="capacidade_diaria_hours"
@@ -183,8 +194,6 @@ export function TecnicoForm({ initialData, onSubmit, onCancel }: TecnicoFormProp
               </FormItem>
             )}
           />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="custo_hora"
@@ -202,7 +211,7 @@ export function TecnicoForm({ initialData, onSubmit, onCancel }: TecnicoFormProp
             control={form.control}
             name="certificacoes"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="md:col-span-2">
                 <FormLabel>Certificações</FormLabel>
                 <FormControl>
                   <Input placeholder="Ex: NR10, NR35" {...field} />
@@ -211,20 +220,20 @@ export function TecnicoForm({ initialData, onSubmit, onCancel }: TecnicoFormProp
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="habilidades"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel>Habilidades</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
-        <FormField
-          control={form.control}
-          name="habilidades"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Habilidades</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <div className="flex justify-end gap-2 pt-4">
           <Button variant="outline" type="button" onClick={onCancel}>
             Cancelar
