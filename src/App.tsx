@@ -15,6 +15,7 @@ import Technicians from './pages/Technicians'
 import EmpresariosPage from './pages/Empresarios'
 import UsersPage from './pages/Users'
 import CustomerNew from './pages/CustomerNew'
+import TechnicianDashboard from './pages/TechnicianDashboard'
 import Finance from './pages/Finance'
 import Indicators from './pages/Indicators'
 import LogsPage from './pages/Logs'
@@ -41,7 +42,7 @@ const RootRedirect = () => {
     case 'empresario':
       return <Navigate to="/" replace />
     case 'tecnico':
-      return <Navigate to="/agenda-tecnico" replace />
+      return <Navigate to="/painel-tecnico" replace />
     case 'cliente':
       return <Navigate to="/portal-cliente" replace />
     default:
@@ -108,18 +109,15 @@ const App = () => (
                   <Route path="/settings/general" element={<Settings />} />
                 </Route>
 
-                <Route
-                  element={<ProtectedRoute allowedRoles={['admin', 'tecnico', 'empresario']} />}
-                >
+                <Route element={<ProtectedRoute allowedRoles={['admin', 'empresario']} />}>
                   <Route path="/agenda-tecnico" element={<Schedule />} />
                   <Route path="/schedule" element={<Navigate to="/agenda-tecnico" replace />} />
                   <Route path="/execution/:id" element={<Execution />} />
+                  <Route path="/report/:id" element={<Report />} />
                 </Route>
 
-                <Route
-                  element={<ProtectedRoute allowedRoles={['admin', 'tecnico', 'empresario']} />}
-                >
-                  <Route path="/report/:id" element={<Report />} />
+                <Route element={<ProtectedRoute allowedRoles={['tecnico']} />}>
+                  <Route path="/painel-tecnico" element={<TechnicianDashboard />} />
                 </Route>
 
                 <Route element={<ProtectedRoute allowedRoles={['cliente']} />}>

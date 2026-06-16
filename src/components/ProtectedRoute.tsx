@@ -10,7 +10,7 @@ const AccessDenied = ({ role, inactive }: { role?: string; inactive?: boolean })
       case 'empresario':
         return '/painel-empresa'
       case 'tecnico':
-        return '/agenda-tecnico'
+        return '/painel-tecnico'
       case 'cliente':
         return '/portal-cliente'
       case 'admin':
