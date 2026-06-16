@@ -24,6 +24,7 @@ import {
   Activity,
   Briefcase,
   Terminal,
+  UserPlus,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Input } from '@/components/ui/input'
@@ -100,6 +101,18 @@ export default function Layout() {
                         <Link to="/empresarios">
                           <Briefcase />
                           <span>Empresários</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={location.pathname === '/users'}
+                        tooltip="Usuários"
+                      >
+                        <Link to="/users">
+                          <UserPlus />
+                          <span>Usuários</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

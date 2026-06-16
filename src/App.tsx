@@ -13,6 +13,7 @@ import Report from './pages/Report'
 import Reports from './pages/Reports'
 import Technicians from './pages/Technicians'
 import EmpresariosPage from './pages/Empresarios'
+import UsersPage from './pages/Users'
 import Finance from './pages/Finance'
 import Indicators from './pages/Indicators'
 import LogsPage from './pages/Logs'
@@ -84,6 +85,7 @@ const App = () => (
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/technicians" element={<Technicians />} />
                   <Route path="/empresarios" element={<EmpresariosPage />} />
+                  <Route path="/users" element={<UsersPage />} />
                   <Route path="/logs" element={<LogsPage />} />
                   <Route path="/simulator" element={<Simulator />} />
                   <Route path="/settings/sandbox" element={<SimulationLogs />} />
