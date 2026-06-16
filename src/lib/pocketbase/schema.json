@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-16T04:39:40.305Z",
+  "generatedAt": "2026-06-16T04:46:56.931Z",
   "collections": [
     {
       "name": "users",
@@ -684,9 +684,25 @@
           "required": false,
           "system": false,
           "selectValues": ["residencial", "comercial", "industrial"]
+        },
+        {
+          "name": "email",
+          "type": "email",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cpf_cnpj",
+          "type": "text",
+          "required": true,
+          "system": false
         }
       ],
-      "indexes": ["CREATE UNIQUE INDEX idx_customers_phone ON customers (phone) WHERE phone != ''"]
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_customers_phone ON customers (phone) WHERE phone != ''",
+        "CREATE UNIQUE INDEX `idx_customers_email` ON `customers` (email) WHERE email != ''",
+        "CREATE UNIQUE INDEX `idx_customers_cpf_cnpj` ON `customers` (cpf_cnpj) WHERE cpf_cnpj != ''"
+      ]
     },
     {
       "name": "quotes",

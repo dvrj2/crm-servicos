@@ -14,6 +14,7 @@ import Reports from './pages/Reports'
 import Technicians from './pages/Technicians'
 import EmpresariosPage from './pages/Empresarios'
 import UsersPage from './pages/Users'
+import CustomerNew from './pages/CustomerNew'
 import Finance from './pages/Finance'
 import Indicators from './pages/Indicators'
 import LogsPage from './pages/Logs'
@@ -95,6 +96,7 @@ const App = () => (
                   <Route path="/painel-empresa" element={<Indicators />} />
                   <Route path="/indicators" element={<Navigate to="/painel-empresa" replace />} />
                   <Route path="/finance" element={<Finance />} />
+                  <Route path="/clientes/novo" element={<CustomerNew />} />
                 </Route>
 
                 <Route element={<ProtectedRoute allowedRoles={['admin', 'tecnico']} />}>
