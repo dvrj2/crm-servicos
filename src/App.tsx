@@ -20,6 +20,7 @@ import Indicators from './pages/Indicators'
 import LogsPage from './pages/Logs'
 import Simulator from './pages/Simulator'
 import SimulationLogs from './pages/SimulationLogs'
+import Settings from './pages/Settings'
 import CustomerPortal from './pages/CustomerPortal'
 import Layout from './components/Layout'
 import { useEffect } from 'react'
@@ -90,6 +91,7 @@ const App = () => (
                   <Route path="/logs" element={<LogsPage />} />
                   <Route path="/simulator" element={<Simulator />} />
                   <Route path="/settings/sandbox" element={<SimulationLogs />} />
+                  <Route path="/settings/general" element={<Settings />} />
                 </Route>
 
                 <Route element={<ProtectedRoute allowedRoles={['admin', 'empresario']} />}>

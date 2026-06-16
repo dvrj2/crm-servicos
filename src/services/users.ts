@@ -1,5 +1,8 @@
 import pb from '@/lib/pocketbase/client'
-import type { User } from '@/types'
+import { User } from '@/types'
 
-export const createUser = (data: Partial<User> & { password?: string; passwordConfirm?: string }) =>
-  pb.collection<User>('users').create(data)
+export const getUsers = () =>
+  pb.collection('users').getFullList<User>({ sort: '-created', expand: 'empresa_id,cliente_id' })
+export const createUser = (data: any) => pb.collection('users').create<User>(data)
+export const updateUser = (id: string, data: any) => pb.collection('users').update<User>(id, data)
+export const deleteUser = (id: string) => pb.collection('users').delete(id)

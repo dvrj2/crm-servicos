@@ -1,212 +1,139 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { getFinancials } from '@/services/financials'
+import { Financial } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { DollarSign, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-react'
-import pb from '@/lib/pocketbase/client'
-import { Financial, ServiceOrder } from '@/types'
-import { useSandbox } from '@/hooks/use-sandbox'
-import { toast } from 'sonner'
-import { getErrorMessage } from '@/lib/pocketbase/errors'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { useRealtime } from '@/hooks/use-realtime'
-import { cn } from '@/lib/utils'
+import { DollarSign, Percent, AlertCircle } from 'lucide-react'
 
 export default function Finance() {
-  const [financials, setFinancials] = useState<
-    (Financial & { expand?: { service_order?: ServiceOrder } })[]
-  >([])
-  const { isSandbox } = useSandbox()
+  const [financials, setFinancials] = useState<Financial[]>([])
 
-  const loadFinancials = async () => {
+  const loadData = async () => {
     try {
-      const data = await pb.collection('financials').getFullList({
-        expand: 'service_order,execution',
-        sort: '-created',
-      })
-      setFinancials(data as any)
+      const data = await getFinancials()
+      setFinancials(data)
     } catch (e) {
-      toast.error('Erro ao carregar dados financeiros')
+      console.error('Failed to load financials', e)
     }
   }
 
   useEffect(() => {
-    loadFinancials()
+    loadData()
   }, [])
 
-  useRealtime('financials', () => {
-    loadFinancials()
-  })
+  useRealtime('financials', loadData)
 
-  const processPayment = async (fin: Financial, success: boolean) => {
-    try {
-      const res = await pb.send('/backend/v1/payments/process', {
-        method: 'POST',
-        body: JSON.stringify({ financial_id: fin.id, simulate_success: success }),
-      })
-      toast.success(res.message || 'Operação realizada com sucesso!')
-    } catch (e) {
-      toast.error('Erro no pagamento', { description: getErrorMessage(e) })
+  const stats = useMemo(() => {
+    let totalRevenue = 0
+    let marginSum = 0
+    let marginCount = 0
+    let pendingCount = 0
+
+    financials.forEach((f) => {
+      totalRevenue += f.final_value || 0
+      if (f.actual_margin !== undefined && f.actual_margin !== null) {
+        marginSum += f.actual_margin
+        marginCount++
+      }
+      if (f.payment_status === 'pendente') {
+        pendingCount++
+      }
+    })
+
+    return {
+      revenue: totalRevenue,
+      avgMargin: marginCount > 0 ? marginSum / marginCount : 0,
+      pending: pendingCount,
     }
-  }
+  }, [financials])
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Financeiro</h2>
-          <p className="text-slate-500">Gestão de faturamentos e pagamentos.</p>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard Financeiro</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">Total Recebido</CardTitle>
-            <DollarSign className="w-4 h-4 text-green-500" />
+            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
+            <DollarSign className="w-4 h-4 text-slate-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R${' '}
-              {financials
-                .filter(
-                  (f) => f.payment_status === 'pago' || f.payment_status === 'simulado_aprovado',
-                )
-                .reduce((acc, curr) => acc + (curr.final_value || 0), 0)
-                .toFixed(2)}
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                stats.revenue,
+              )}
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">A Receber</CardTitle>
-            <Clock className="w-4 h-4 text-amber-500" />
+            <CardTitle className="text-sm font-medium">Margem Média</CardTitle>
+            <Percent className="w-4 h-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              R${' '}
-              {financials
-                .filter((f) => f.payment_status === 'pendente')
-                .reduce((acc, curr) => acc + (curr.final_value || 0), 0)
-                .toFixed(2)}
-            </div>
+            <div className="text-2xl font-bold">{stats.avgMargin.toFixed(1)}%</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-500">
-              Inadimplência (Erro)
-            </CardTitle>
-            <AlertCircle className="w-4 h-4 text-red-500" />
+            <CardTitle className="text-sm font-medium">Pendências</CardTitle>
+            <AlertCircle className="w-4 h-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              R${' '}
-              {financials
-                .filter(
-                  (f) =>
-                    f.payment_status === 'erro' ||
-                    f.payment_status === 'vencido' ||
-                    f.payment_status === 'simulado_negado',
-                )
-                .reduce((acc, curr) => acc + (curr.final_value || 0), 0)
-                .toFixed(2)}
-            </div>
+            <div className="text-2xl font-bold">{stats.pending}</div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Histórico de Faturas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[600px] pr-4">
-            <div className="space-y-4">
-              {financials.map((fin) => (
-                <div
-                  key={fin.id}
-                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg gap-4 bg-white hover:bg-slate-50 transition-colors"
-                >
-                  <div>
-                    <p className="font-semibold text-slate-800">
-                      {fin.expand?.service_order ? (
-                        <>
-                          OS: {fin.expand.service_order.customer_name || 'Sem Cliente'}
-                          <span className="text-slate-400 text-xs ml-2 font-mono">
-                            #{fin.service_order?.slice(0, 8)}
-                          </span>
-                        </>
-                      ) : (
-                        'Faturamento Avulso / Sem OS'
-                      )}
-                    </p>
-                    <p className="text-sm text-slate-500 mt-1">
-                      Valor Final:{' '}
-                      <strong className="text-slate-900">
-                        R$ {fin.final_value?.toFixed(2) || '0.00'}
-                      </strong>
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 w-full sm:w-auto">
-                    <Badge
-                      variant={
-                        fin.payment_status === 'pago'
-                          ? 'default'
-                          : fin.payment_status === 'simulado_aprovado'
-                            ? 'outline'
-                            : fin.payment_status === 'erro' ||
-                                fin.payment_status === 'simulado_negado'
-                              ? 'destructive'
-                              : 'secondary'
-                      }
-                      className={cn(
-                        'uppercase text-[10px] tracking-wide',
-                        fin.payment_status === 'simulado_aprovado' &&
-                          'border-green-500 text-green-700',
-                        fin.payment_status === 'simulado_negado' && 'border-red-500 text-red-700',
-                      )}
-                    >
-                      {fin.payment_status?.replace('_', ' ') || 'desconhecido'}
-                    </Badge>
-
-                    {fin.payment_status !== 'pago' &&
-                      fin.payment_status !== 'simulado_aprovado' && (
-                        <div className="flex gap-2 w-full sm:w-auto">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-green-200 text-green-700 hover:bg-green-50 w-full sm:w-auto"
-                            onClick={() => processPayment(fin, true)}
-                          >
-                            <CheckCircle2 className="w-4 h-4 mr-1" />{' '}
-                            {isSandbox ? 'Simular Aprovação' : 'Aprovar Pagamento'}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-red-200 text-red-700 hover:bg-red-50 w-full sm:w-auto"
-                            onClick={() => processPayment(fin, false)}
-                          >
-                            <XCircle className="w-4 h-4 mr-1" />{' '}
-                            {isSandbox ? 'Simular Falha' : 'Recusar Pagamento'}
-                          </Button>
-                        </div>
-                      )}
-                  </div>
-                </div>
-              ))}
-              {financials.length === 0 && (
-                <div className="text-center text-slate-500 py-12 flex flex-col items-center">
-                  <DollarSign className="w-12 h-12 text-slate-300 mb-3" />
-                  <p>Nenhuma fatura encontrada no sistema.</p>
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+      <div className="bg-white rounded-lg border shadow-sm mt-6">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID Execução</TableHead>
+              <TableHead>Valor Final</TableHead>
+              <TableHead>Margem</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Data</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {financials.map((f) => (
+              <TableRow key={f.id}>
+                <TableCell className="font-medium">{f.execution}</TableCell>
+                <TableCell>
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                    f.final_value || 0,
+                  )}
+                </TableCell>
+                <TableCell>{f.actual_margin ?? 0}%</TableCell>
+                <TableCell>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${f.payment_status === 'pago' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}
+                  >
+                    {f.payment_status}
+                  </span>
+                </TableCell>
+                <TableCell>{new Date(f.created).toLocaleDateString('pt-BR')}</TableCell>
+              </TableRow>
+            ))}
+            {financials.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  Nenhum registro financeiro encontrado.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

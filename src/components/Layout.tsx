@@ -25,6 +25,7 @@ import {
   Briefcase,
   Terminal,
   UserPlus,
+  Settings as SettingsIcon,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Input } from '@/components/ui/input'
@@ -179,12 +180,24 @@ export default function Layout() {
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         asChild
+                        isActive={location.pathname === '/settings/general'}
+                        tooltip="Configurações Globais"
+                      >
+                        <Link to="/settings/general">
+                          <SettingsIcon />
+                          <span>Configurações</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
                         isActive={location.pathname === '/settings/sandbox'}
-                        tooltip="Configurações – Sandbox"
+                        tooltip="Logs do Sandbox"
                       >
                         <Link to="/settings/sandbox">
                           <Terminal />
-                          <span>Sandbox</span>
+                          <span>Sandbox Logs</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

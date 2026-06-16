@@ -5,9 +5,10 @@ import * as z from 'zod'
 import { toast } from 'sonner'
 import { getEmpresarios } from '@/services/empresarios'
 import { getCustomers } from '@/services/customers'
-import { createUser } from '@/services/users'
-import { Customer, Empresario } from '@/types'
+import { getUsers, createUser, updateUser } from '@/services/users'
+import { Customer, Empresario, User } from '@/types'
 import { extractFieldErrors } from '@/lib/pocketbase/errors'
+import { useRealtime } from '@/hooks/use-realtime'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,49 +27,52 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus, Pencil } from 'lucide-react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Switch } from '@/components/ui/switch'
 
 const userSchema = z
   .object({
     name: z.string().min(1, 'Nome é obrigatório'),
     email: z.string().email('Email inválido'),
-    password: z.string().min(8, 'A senha deve ter no mínimo 8 caracteres'),
+    password: z.string().optional(),
     tipo_role: z.enum(['admin', 'empresario', 'tecnico', 'cliente'], {
       required_error: 'Perfil é obrigatório',
     }),
     empresa_id: z.string().optional(),
     cliente_id: z.string().optional(),
+    ativo: z.boolean().default(true),
   })
   .refine(
     (data) => {
-      if (['empresario', 'tecnico'].includes(data.tipo_role) && !data.empresa_id) {
-        return false
-      }
+      if (['empresario', 'tecnico'].includes(data.tipo_role) && !data.empresa_id) return false
       return true
     },
-    {
-      message: 'Empresa é obrigatória para este perfil',
-      path: ['empresa_id'],
-    },
+    { message: 'Empresa é obrigatória', path: ['empresa_id'] },
   )
   .refine(
     (data) => {
-      if (data.tipo_role === 'cliente' && !data.cliente_id) {
-        return false
-      }
+      if (data.tipo_role === 'cliente' && !data.cliente_id) return false
       return true
     },
-    {
-      message: 'Cliente é obrigatório para este perfil',
-      path: ['cliente_id'],
-    },
+    { message: 'Cliente é obrigatório', path: ['cliente_id'] },
   )
 
 export default function UsersPage() {
+  const [users, setUsers] = useState<User[]>([])
   const [empresarios, setEmpresarios] = useState<Empresario[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
 
   const form = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
@@ -79,38 +83,42 @@ export default function UsersPage() {
       tipo_role: undefined,
       empresa_id: '',
       cliente_id: '',
+      ativo: true,
     },
   })
 
   const watchRole = form.watch('tipo_role')
 
-  useEffect(() => {
-    getEmpresarios().then(setEmpresarios).catch(console.error)
-    getCustomers().then(setCustomers).catch(console.error)
-  }, [])
-
-  const onSubmit = async (data: z.infer<typeof userSchema>) => {
-    setIsLoading(true)
+  const loadData = async () => {
     try {
-      const payload: Record<string, any> = {
-        name: data.name,
-        email: data.email,
-        password: data.password,
-        passwordConfirm: data.password,
-        tipo_role: data.tipo_role,
-        ativo: true,
-      }
+      const [u, e, c] = await Promise.all([getUsers(), getEmpresarios(), getCustomers()])
+      setUsers(u)
+      setEmpresarios(e)
+      setCustomers(c)
+    } catch (err) {
+      console.error(err)
+    }
+  }
 
-      if (['empresario', 'tecnico'].includes(data.tipo_role) && data.empresa_id) {
-        payload.empresa_id = data.empresa_id
-      }
+  useEffect(() => {
+    loadData()
+  }, [])
+  useRealtime('users', loadData)
 
-      if (data.tipo_role === 'cliente' && data.cliente_id) {
-        payload.cliente_id = data.cliente_id
-      }
-
-      await createUser(payload)
-      toast.success('Usuário criado com sucesso!')
+  const handleOpenModal = (user?: User) => {
+    if (user) {
+      setEditingUser(user)
+      form.reset({
+        name: user.name || '',
+        email: user.email || '',
+        password: '',
+        tipo_role: user.tipo_role as any,
+        empresa_id: user.empresa_id || '',
+        cliente_id: user.cliente_id || '',
+        ativo: user.ativo,
+      })
+    } else {
+      setEditingUser(null)
       form.reset({
         name: '',
         email: '',
@@ -118,7 +126,50 @@ export default function UsersPage() {
         tipo_role: undefined,
         empresa_id: '',
         cliente_id: '',
+        ativo: true,
       })
+    }
+    setIsModalOpen(true)
+  }
+
+  const toggleActive = async (user: User) => {
+    try {
+      await updateUser(user.id, { ativo: !user.ativo })
+      toast.success(`Usuário ${user.ativo ? 'suspenso' : 'ativado'} com sucesso!`)
+    } catch (err) {
+      toast.error('Erro ao alterar status')
+    }
+  }
+
+  const onSubmit = async (data: z.infer<typeof userSchema>) => {
+    setIsLoading(true)
+    try {
+      const payload: Record<string, any> = {
+        name: data.name,
+        email: data.email,
+        tipo_role: data.tipo_role,
+        ativo: data.ativo,
+        empresa_id: data.empresa_id || null,
+        cliente_id: data.cliente_id || null,
+      }
+
+      if (data.password) {
+        payload.password = data.password
+        payload.passwordConfirm = data.password
+      } else if (!editingUser) {
+        form.setError('password', { message: 'Senha é obrigatória para novos usuários' })
+        setIsLoading(false)
+        return
+      }
+
+      if (editingUser) {
+        await updateUser(editingUser.id, payload)
+        toast.success('Usuário atualizado com sucesso!')
+      } else {
+        await createUser(payload)
+        toast.success('Usuário criado com sucesso!')
+      }
+      setIsModalOpen(false)
     } catch (error: any) {
       const fieldErrors = extractFieldErrors(error)
       if (Object.keys(fieldErrors).length > 0) {
@@ -127,7 +178,7 @@ export default function UsersPage() {
         })
         toast.error('Erro de validação, verifique os campos.')
       } else {
-        toast.error('Erro ao criar usuário', { description: error.message })
+        toast.error('Erro ao salvar usuário', { description: error.message })
       }
     } finally {
       setIsLoading(false)
@@ -135,15 +186,57 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto py-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Cadastro de Usuário</CardTitle>
-          <CardDescription>
-            Crie um novo usuário no sistema vinculando ao perfil correto.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Usuários</h1>
+        <Button onClick={() => handleOpenModal()}>
+          <Plus className="w-4 h-4 mr-2" /> Novo Usuário
+        </Button>
+      </div>
+
+      <div className="bg-white rounded-lg border shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nome</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Perfil</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.map((u) => (
+              <TableRow key={u.id}>
+                <TableCell className="font-medium">{u.name || '-'}</TableCell>
+                <TableCell>{u.email}</TableCell>
+                <TableCell className="capitalize">{u.tipo_role}</TableCell>
+                <TableCell>
+                  <Switch checked={u.ativo} onCheckedChange={() => toggleActive(u)} />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon" onClick={() => handleOpenModal(u)}>
+                    <Pencil className="w-4 h-4 text-slate-600" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {users.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                  Nenhum usuário cadastrado.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
+          </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -154,13 +247,12 @@ export default function UsersPage() {
                     <FormItem>
                       <FormLabel>Nome Completo</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ex: João da Silva" {...field} />
+                        <Input placeholder="Ex: João" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="email"
@@ -174,13 +266,12 @@ export default function UsersPage() {
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Senha</FormLabel>
+                      <FormLabel>{editingUser ? 'Nova Senha (opcional)' : 'Senha'}</FormLabel>
                       <FormControl>
                         <Input type="password" placeholder="Mínimo 8 caracteres" {...field} />
                       </FormControl>
@@ -188,7 +279,6 @@ export default function UsersPage() {
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="tipo_role"
@@ -198,7 +288,7 @@ export default function UsersPage() {
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Selecione um perfil" />
+                            <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -212,7 +302,6 @@ export default function UsersPage() {
                     </FormItem>
                   )}
                 />
-
                 {['empresario', 'tecnico'].includes(watchRole || '') && (
                   <FormField
                     control={form.control}
@@ -223,7 +312,7 @@ export default function UsersPage() {
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma empresa" />
+                              <SelectValue placeholder="Selecione..." />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -239,7 +328,6 @@ export default function UsersPage() {
                     )}
                   />
                 )}
-
                 {watchRole === 'cliente' && (
                   <FormField
                     control={form.control}
@@ -250,7 +338,7 @@ export default function UsersPage() {
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecione um cliente" />
+                              <SelectValue placeholder="Selecione..." />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -267,23 +355,19 @@ export default function UsersPage() {
                   />
                 )}
               </div>
-
-              <div className="flex justify-end">
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" type="button" onClick={() => setIsModalOpen(false)}>
+                  Cancelar
+                </Button>
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Criando...
-                    </>
-                  ) : (
-                    'Criar Usuário'
-                  )}
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar
                 </Button>
               </div>
             </form>
           </Form>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
