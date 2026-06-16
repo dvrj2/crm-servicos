@@ -1,14 +1,14 @@
-function isSandboxActive() {
-  try {
-    const settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
-    return settings.get('value')?.enabled === true
-  } catch (err) {
-    return false
-  }
-}
-
 // 1. Fixed GPS for technicians
 onRecordUpdate((e) => {
+  function isSandboxActive() {
+    try {
+      const settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+      return settings.get('value')?.enabled === true
+    } catch (err) {
+      return false
+    }
+  }
+
   if (isSandboxActive()) {
     const oldLat = e.record.original().get('current_lat')
     const oldLng = e.record.original().get('current_lng')
@@ -33,6 +33,15 @@ onRecordUpdate((e) => {
 
 // 2. Intercept Email / WhatsApp on new system messages
 onRecordAfterCreateSuccess((e) => {
+  function isSandboxActive() {
+    try {
+      const settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+      return settings.get('value')?.enabled === true
+    } catch (err) {
+      return false
+    }
+  }
+
   if (isSandboxActive() && e.record.get('sender') === '') {
     try {
       const log = new Record($app.findCollectionByNameOrId('automation_logs'))
@@ -49,6 +58,15 @@ onRecordAfterCreateSuccess((e) => {
 
 // 3. Intercept Satisfaction Email on OS Completion
 onRecordAfterUpdateSuccess((e) => {
+  function isSandboxActive() {
+    try {
+      const settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+      return settings.get('value')?.enabled === true
+    } catch (err) {
+      return false
+    }
+  }
+
   if (isSandboxActive()) {
     const oldStatus = e.record.original().getString('status')
     const newStatus = e.record.getString('status')
