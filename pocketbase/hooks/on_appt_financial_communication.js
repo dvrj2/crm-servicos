@@ -3,17 +3,19 @@ onRecordAfterUpdateSuccess((e) => {
   try {
     const isSandboxActive = () => {
       try {
-        let isSandbox = false
         try {
-          const settings = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
-          isSandbox = settings.get('value') === true || settings.get('value')?.enabled === true
-        } catch (err) {
-          try {
-            const settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
-            isSandbox = settings.get('value') === true || settings.get('value')?.enabled === true
-          } catch (e) {}
-        }
-        return isSandbox
+          const s = $app.findFirstRecordByData('system_settings', 'key', 'bloqueio_total')
+          if (s.get('value') === true || s.get('value')?.enabled === true) return true
+        } catch (_) {}
+        try {
+          const s = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
+          if (s.get('value') === true || s.get('value')?.enabled === true) return true
+        } catch (_) {}
+        try {
+          const s = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+          if (s.get('value') === true || s.get('value')?.enabled === true) return true
+        } catch (_) {}
+        return false
       } catch (err) {
         return false
       }

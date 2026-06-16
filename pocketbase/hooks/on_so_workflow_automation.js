@@ -11,13 +11,28 @@ onRecordUpdate((e) => {
     if ((newStatus === 'concluído' || newStatus === 'completed') && !so.get('technical_report')) {
       let isSandbox = false
       try {
-        let settings = null
+        let lock = null
         try {
-          settings = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
-        } catch (err) {
-          settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+          lock = $app.findFirstRecordByData('system_settings', 'key', 'bloqueio_total')
+        } catch (e) {}
+        if (lock && (lock.get('value') === true || lock.get('value')?.enabled === true)) {
+          isSandbox = true
+        } else {
+          let settings = null
+          try {
+            settings = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
+          } catch (err) {
+            try {
+              settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+            } catch (e) {}
+          }
+          if (
+            settings &&
+            (settings.get('value') === true || settings.get('value')?.enabled === true)
+          ) {
+            isSandbox = true
+          }
         }
-        isSandbox = settings.get('value') === true || settings.get('value')?.enabled === true
       } catch (err) {}
 
       if (isSandbox) {
@@ -70,13 +85,28 @@ onRecordAfterUpdateSuccess((e) => {
       } catch (_) {
         let isSandbox = false
         try {
-          let settings = null
+          let lock = null
           try {
-            settings = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
-          } catch (err) {
-            settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+            lock = $app.findFirstRecordByData('system_settings', 'key', 'bloqueio_total')
+          } catch (e) {}
+          if (lock && (lock.get('value') === true || lock.get('value')?.enabled === true)) {
+            isSandbox = true
+          } else {
+            let settings = null
+            try {
+              settings = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
+            } catch (err) {
+              try {
+                settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+              } catch (e) {}
+            }
+            if (
+              settings &&
+              (settings.get('value') === true || settings.get('value')?.enabled === true)
+            ) {
+              isSandbox = true
+            }
           }
-          isSandbox = settings.get('value') === true || settings.get('value')?.enabled === true
         } catch (err) {}
 
         try {

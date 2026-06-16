@@ -3,6 +3,10 @@ onRecordUpdate((e) => {
   function isSandboxActive() {
     try {
       try {
+        const s = $app.findFirstRecordByData('system_settings', 'key', 'bloqueio_total')
+        if (s.get('value') === true || s.get('value')?.enabled === true) return true
+      } catch (_) {}
+      try {
         const s = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
         if (s.get('value') === true || s.get('value')?.enabled === true) return true
       } catch (_) {}
@@ -47,6 +51,10 @@ onRecordAfterCreateSuccess((e) => {
   function isSandboxActive() {
     try {
       try {
+        const s = $app.findFirstRecordByData('system_settings', 'key', 'bloqueio_total')
+        if (s.get('value') === true || s.get('value')?.enabled === true) return true
+      } catch (_) {}
+      try {
         const s = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
         if (s.get('value') === true || s.get('value')?.enabled === true) return true
       } catch (_) {}
@@ -81,6 +89,10 @@ onRecordAfterCreateSuccess((e) => {
 onRecordAfterUpdateSuccess((e) => {
   function isSandboxActive() {
     try {
+      try {
+        const s = $app.findFirstRecordByData('system_settings', 'key', 'bloqueio_total')
+        if (s.get('value') === true || s.get('value')?.enabled === true) return true
+      } catch (_) {}
       try {
         const s = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
         if (s.get('value') === true || s.get('value')?.enabled === true) return true
@@ -121,6 +133,10 @@ onRecordAfterUpdateSuccess((e) => {
 onRecordUpdate((e) => {
   function isSandboxActive() {
     try {
+      try {
+        const s = $app.findFirstRecordByData('system_settings', 'key', 'bloqueio_total')
+        if (s.get('value') === true || s.get('value')?.enabled === true) return true
+      } catch (_) {}
       try {
         const s = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
         if (s.get('value') === true || s.get('value')?.enabled === true) return true

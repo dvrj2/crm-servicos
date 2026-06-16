@@ -23,6 +23,7 @@ import LogsPage from './pages/Logs'
 import Simulator from './pages/Simulator'
 import SimulationLogs from './pages/SimulationLogs'
 import Settings from './pages/Settings'
+import SecuritySettings from './pages/SecuritySettings'
 import CustomerPortal from './pages/CustomerPortal'
 import Layout from './components/Layout'
 import Customers from './pages/Customers'
@@ -107,6 +108,7 @@ const App = () => (
                   <Route path="/simulator" element={<Simulator />} />
                   <Route path="/settings/sandbox" element={<SimulationLogs />} />
                   <Route path="/settings/general" element={<Settings />} />
+                  <Route path="/configuracoes-seguranca" element={<SecuritySettings />} />
                 </Route>
 
                 <Route

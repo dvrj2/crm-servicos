@@ -51,8 +51,16 @@ export function OrderDetailModal({ order, technicians, onClose, onUpdate }: Orde
   const [predictedHours, setPredictedHours] = useState<number>(0)
   const [plannedMargin, setPlannedMargin] = useState<number>(0)
   const [suggestedPrice, setSuggestedPrice] = useState<number>(0)
+  const [isLocked, setIsLocked] = useState(false)
 
   useEffect(() => {
+    pb.collection('system_settings')
+      .getFirstListItem('key="bloqueio_total"')
+      .then((record) => {
+        setIsLocked(record.value?.enabled === true || record.value === true)
+      })
+      .catch(() => setIsLocked(false))
+
     if (order) {
       setStatus(order.status)
       setTech(order.technician || '')
@@ -339,13 +347,23 @@ Podemos seguir com a aprovação? Aguardamos seu retorno para agendar.`
                     R$ {suggestedPrice.toFixed(2)}
                   </span>
                 </div>
-                <Button
-                  variant="outline"
-                  className="w-full text-green-600 border-green-200 hover:bg-green-50"
-                  onClick={handleWhatsAppBudget}
-                >
-                  Enviar Orçamento via WhatsApp
-                </Button>
+                {!isLocked ? (
+                  <Button
+                    variant="outline"
+                    className="w-full text-green-600 border-green-200 hover:bg-green-50"
+                    onClick={handleWhatsAppBudget}
+                  >
+                    Enviar Orçamento via WhatsApp
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full text-slate-500 border-slate-200 cursor-not-allowed"
+                    disabled
+                  >
+                    Envio via WhatsApp Bloqueado (Simulação)
+                  </Button>
+                )}
               </div>
             </TabsContent>
           </Tabs>
