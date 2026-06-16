@@ -16,29 +16,6 @@ import {
 } from '@/components/ui/form'
 import type { Empresario } from '@/types'
 
-const schema = z.object({
-  nome: z.string().min(1, 'Nome é obrigatório'),
-  cpf_cnpj: z.string().min(1, 'CPF/CNPJ é obrigatório'),
-  email: z.string().email('Email inválido'),
-  telefone: z.string().optional(),
-  endereco: z.string().optional(),
-  area_de_atuacao: z.string().optional(),
-  registro_profissional: z.string().optional(),
-  certificacoes: z.string().optional(),
-})
-
-type FormData = z.infer<typeof schema>
-
-const textFields = [
-  { name: 'nome', label: 'Nome *' },
-  { name: 'cpf_cnpj', label: 'CPF/CNPJ *' },
-  { name: 'email', label: 'E-mail *' },
-  { name: 'telefone', label: 'Telefone' },
-  { name: 'endereco', label: 'Endereço' },
-  { name: 'area_de_atuacao', label: 'Área de Atuação' },
-  { name: 'registro_profissional', label: 'Registro Profissional (CREA, etc.)' },
-] as const
-
 export function EmpresarioForm({
   initialData,
   onSubmit,
@@ -48,12 +25,31 @@ export function EmpresarioForm({
   onSubmit: (data: globalThis.FormData) => Promise<void>
   isSubmitting: boolean
 }) {
+  const isEditing = !!initialData
+
+  const schema = z.object({
+    nome: z.string().min(1, 'Nome é obrigatório'),
+    cpf_cnpj: z.string().min(1, 'CPF/CNPJ é obrigatório'),
+    email: z.string().email('Email inválido'),
+    senha: isEditing
+      ? z.string().optional()
+      : z.string().min(8, 'A senha deve ter no mínimo 8 caracteres'),
+    telefone: z.string().optional(),
+    endereco: z.string().optional(),
+    area_de_atuacao: z.string().optional(),
+    registro_profissional: z.string().optional(),
+    certificacoes: z.string().optional(),
+  })
+
+  type FormData = z.infer<typeof schema>
+
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       nome: initialData?.nome || '',
       cpf_cnpj: initialData?.cpf_cnpj || '',
       email: initialData?.email || '',
+      senha: '',
       telefone: initialData?.telefone || '',
       endereco: initialData?.endereco || '',
       area_de_atuacao: initialData?.area_de_atuacao || '',
@@ -68,6 +64,7 @@ export function EmpresarioForm({
         nome: initialData.nome || '',
         cpf_cnpj: initialData.cpf_cnpj || '',
         email: initialData.email || '',
+        senha: '',
         telefone: initialData.telefone || '',
         endereco: initialData.endereco || '',
         area_de_atuacao: initialData.area_de_atuacao || '',
@@ -79,6 +76,7 @@ export function EmpresarioForm({
         nome: '',
         cpf_cnpj: '',
         email: '',
+        senha: '',
         telefone: '',
         endereco: '',
         area_de_atuacao: '',
@@ -106,22 +104,112 @@ export function EmpresarioForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          {textFields.map((f) => (
+          <FormField
+            control={form.control}
+            name="nome"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome *</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="cpf_cnpj"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>CPF/CNPJ *</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>E-mail *</FormLabel>
+                <FormControl>
+                  <Input type="email" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {!isEditing && (
             <FormField
-              key={f.name}
               control={form.control}
-              name={f.name}
+              name="senha"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{f.label}</FormLabel>
+                  <FormLabel>Senha *</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input type="password" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-          ))}
+          )}
+          <FormField
+            control={form.control}
+            name="telefone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Telefone</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="endereco"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Endereço</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="area_de_atuacao"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Área de Atuação</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="registro_profissional"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Registro Profissional (CREA, etc.)</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <FormField
@@ -159,7 +247,7 @@ export function EmpresarioForm({
 
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Salvando...' : 'Salvar'}
+            {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar' : 'Criar Empresário'}
           </Button>
         </div>
       </form>

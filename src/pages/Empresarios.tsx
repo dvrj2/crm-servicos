@@ -69,9 +69,12 @@ export default function EmpresariosPage() {
     setIsSubmitting(true)
     try {
       if (selected) {
+        data.delete('senha')
         await updateEmpresario(selected.id, data)
       } else {
-        await createEmpresario(data)
+        const senha = data.get('senha') as string
+        data.delete('senha')
+        await createEmpresario(data, senha)
       }
       setIsModalOpen(false)
       toast({ title: 'Sucesso', description: 'Empresário salvo com sucesso.' })
