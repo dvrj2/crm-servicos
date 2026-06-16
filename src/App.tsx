@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -21,10 +21,27 @@ import SimulationLogs from './pages/SimulationLogs'
 import CustomerPortal from './pages/CustomerPortal'
 import Layout from './components/Layout'
 import { useEffect } from 'react'
-import { AuthProvider } from './hooks/use-auth'
+import { AuthProvider, useAuth } from './hooks/use-auth'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { toast } from 'sonner'
+
+const RootRedirect = () => {
+  const { user } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  switch (user.tipo_role) {
+    case 'admin':
+      return <Navigate to="/painel-admin" replace />
+    case 'empresario':
+      return <Navigate to="/painel-empresa" replace />
+    case 'tecnico':
+      return <Navigate to="/agenda-tecnico" replace />
+    case 'cliente':
+      return <Navigate to="/portal-cliente" replace />
+    default:
+      return <Navigate to="/login" replace />
+  }
+}
 
 const GlobalErrorHandler = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
@@ -59,8 +76,9 @@ const App = () => (
 
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
-                <Route path="/" element={<Index />} />
+                <Route path="/" element={<RootRedirect />} />
                 <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                  <Route path="/painel-admin" element={<Index />} />
                   <Route path="/order/:id" element={<OrderDetail />} />
                   <Route path="/order/:id/quote" element={<QuotePage />} />
                   <Route path="/reports" element={<Reports />} />
@@ -72,12 +90,14 @@ const App = () => (
                 </Route>
 
                 <Route element={<ProtectedRoute allowedRoles={['admin', 'empresario']} />}>
-                  <Route path="/indicators" element={<Indicators />} />
+                  <Route path="/painel-empresa" element={<Indicators />} />
+                  <Route path="/indicators" element={<Navigate to="/painel-empresa" replace />} />
                   <Route path="/finance" element={<Finance />} />
                 </Route>
 
                 <Route element={<ProtectedRoute allowedRoles={['admin', 'tecnico']} />}>
-                  <Route path="/schedule" element={<Schedule />} />
+                  <Route path="/agenda-tecnico" element={<Schedule />} />
+                  <Route path="/schedule" element={<Navigate to="/agenda-tecnico" replace />} />
                   <Route path="/execution/:id" element={<Execution />} />
                 </Route>
 
@@ -88,7 +108,11 @@ const App = () => (
                 </Route>
 
                 <Route element={<ProtectedRoute allowedRoles={['cliente']} />}>
-                  <Route path="/customer-portal" element={<CustomerPortal />} />
+                  <Route path="/portal-cliente" element={<CustomerPortal />} />
+                  <Route
+                    path="/customer-portal"
+                    element={<Navigate to="/portal-cliente" replace />}
+                  />
                 </Route>
               </Route>
             </Route>

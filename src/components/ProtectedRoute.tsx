@@ -8,13 +8,13 @@ const AccessDenied = ({ role, inactive }: { role?: string; inactive?: boolean })
     if (inactive) return '/login'
     switch (role) {
       case 'empresario':
-        return '/indicators'
+        return '/painel-empresa'
       case 'tecnico':
-        return '/schedule'
+        return '/agenda-tecnico'
       case 'cliente':
-        return '/customer-portal'
+        return '/portal-cliente'
       case 'admin':
-        return '/'
+        return '/painel-admin'
       default:
         return '/login'
     }

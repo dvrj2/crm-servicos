@@ -50,15 +50,15 @@ export default function Login() {
     } else if (user) {
       const role = user.tipo_role
       if (role === 'admin') {
-        navigate('/')
+        navigate('/painel-admin')
       } else if (role === 'empresario') {
-        navigate('/indicators')
+        navigate('/painel-empresa')
       } else if (role === 'tecnico') {
-        navigate('/schedule')
+        navigate('/agenda-tecnico')
       } else if (role === 'cliente') {
-        navigate('/customer-portal')
+        navigate('/portal-cliente')
       } else {
-        navigate('/')
+        navigate('/painel-admin')
       }
     }
   }
