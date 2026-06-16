@@ -3,11 +3,31 @@ import { useAuth } from '@/hooks/use-auth'
 import pb from '@/lib/pocketbase/client'
 import { ServiceOrder, ServiceOrderPhoto } from '@/types'
 import { useRealtime } from '@/hooks/use-realtime'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { FileText, Loader2, Calendar, MapPin, ExternalLink, Camera, CheckCircle2, Clock, Truck, Hammer, AlertTriangle, Image as ImageIcon } from 'lucide-react'
+import {
+  FileText,
+  Loader2,
+  Calendar,
+  MapPin,
+  ExternalLink,
+  Camera,
+  CheckCircle2,
+  Clock,
+  Truck,
+  Hammer,
+  AlertTriangle,
+  Image as ImageIcon,
+} from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -37,9 +57,11 @@ export default function CustomerPortal() {
       })
       setOrders(ordersData)
 
-      const photosData = await pb.collection('service_order_photos').getFullList<ServiceOrderPhoto>({
-        filter: `service_order.customer = "${user.cliente_id}"`,
-      })
+      const photosData = await pb
+        .collection('service_order_photos')
+        .getFullList<ServiceOrderPhoto>({
+          filter: `service_order.customer = "${user.cliente_id}"`,
+        })
       setPhotos(photosData)
     } catch (err) {
       console.error(err)
@@ -58,7 +80,7 @@ export default function CustomerPortal() {
         setOrders((prev) => [e.record as unknown as ServiceOrder, ...prev])
       } else if (e.action === 'update') {
         setOrders((prev) =>
-          prev.map((o) => (o.id === e.record.id ? (e.record as unknown as ServiceOrder) : o))
+          prev.map((o) => (o.id === e.record.id ? (e.record as unknown as ServiceOrder) : o)),
         )
       } else if (e.action === 'delete') {
         setOrders((prev) => prev.filter((o) => o.id !== e.record.id))
@@ -98,7 +120,11 @@ export default function CustomerPortal() {
       case 'aguardando cliente':
         return <Badge className="bg-amber-500 hover:bg-amber-600">Aguardando Você</Badge>
       default:
-        return <Badge variant="secondary" className="capitalize">{status || 'Novo'}</Badge>
+        return (
+          <Badge variant="secondary" className="capitalize">
+            {status || 'Novo'}
+          </Badge>
+        )
     }
   }
 
@@ -111,7 +137,11 @@ export default function CustomerPortal() {
       case 'vencido':
         return <Badge variant="destructive">Vencido</Badge>
       default:
-        return <Badge variant="outline" className="capitalize">{status || 'N/A'}</Badge>
+        return (
+          <Badge variant="outline" className="capitalize">
+            {status || 'N/A'}
+          </Badge>
+        )
     }
   }
 
@@ -151,17 +181,21 @@ export default function CustomerPortal() {
 
   const activeOrders = useMemo(
     () => orders.filter((o) => !['concluído', 'faturado', 'cancelado'].includes(o.status)),
-    [orders]
+    [orders],
   )
 
   const historyOrders = useMemo(
     () => orders.filter((o) => ['concluído', 'faturado', 'cancelado'].includes(o.status)),
-    [orders]
+    [orders],
   )
 
   const paymentOrders = useMemo(
-    () => orders.filter((o) => o.payment_status && o.payment_status !== 'simulado_negado' && o.status !== 'cancelado'),
-    [orders]
+    () =>
+      orders.filter(
+        (o) =>
+          o.payment_status && o.payment_status !== 'simulado_negado' && o.status !== 'cancelado',
+      ),
+    [orders],
   )
 
   if (loading) {
@@ -236,7 +270,10 @@ export default function CustomerPortal() {
                     </h4>
                     <div className="grid grid-cols-2 gap-2">
                       {beforePhotos.map((p) => (
-                        <div key={p.id} className="aspect-square relative rounded-md overflow-hidden border">
+                        <div
+                          key={p.id}
+                          className="aspect-square relative rounded-md overflow-hidden border"
+                        >
                           <img
                             src={pb.files.getUrl(p, p.file)}
                             alt="Antes"
@@ -259,7 +296,10 @@ export default function CustomerPortal() {
                     </h4>
                     <div className="grid grid-cols-2 gap-2">
                       {afterPhotos.map((p) => (
-                        <div key={p.id} className="aspect-square relative rounded-md overflow-hidden border">
+                        <div
+                          key={p.id}
+                          className="aspect-square relative rounded-md overflow-hidden border"
+                        >
                           <img
                             src={pb.files.getUrl(p, p.file)}
                             alt="Depois"
@@ -278,7 +318,8 @@ export default function CustomerPortal() {
                   </div>
                 </div>
               </div>
-            </ScrollArea>
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     )
@@ -295,9 +336,15 @@ export default function CustomerPortal() {
 
       <Tabs defaultValue="active" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-8 bg-slate-100/50 p-1 rounded-lg">
-          <TabsTrigger value="active" className="rounded-md">Em Andamento</TabsTrigger>
-          <TabsTrigger value="history" className="rounded-md">Histórico</TabsTrigger>
-          <TabsTrigger value="payments" className="rounded-md">Pagamentos</TabsTrigger>
+          <TabsTrigger value="active" className="rounded-md">
+            Em Andamento
+          </TabsTrigger>
+          <TabsTrigger value="history" className="rounded-md">
+            Histórico
+          </TabsTrigger>
+          <TabsTrigger value="payments" className="rounded-md">
+            Pagamentos
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="active" className="space-y-4">
@@ -396,9 +443,7 @@ export default function CustomerPortal() {
                 <Card key={order.id} className="shadow-sm border-l-4 border-l-slate-300">
                   <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="space-y-1">
-                      <h3 className="font-semibold text-base">
-                        {order.service_type || 'Serviço'}
-                      </h3>
+                      <h3 className="font-semibold text-base">{order.service_type || 'Serviço'}</h3>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
                         <span>
                           {order.finished_at
