@@ -23,6 +23,7 @@ import {
   LineChart,
   Activity,
   Briefcase,
+  Terminal,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Input } from '@/components/ui/input'
@@ -159,6 +160,18 @@ export default function Layout() {
                         <Link to="/simulator">
                           <Activity />
                           <span>Simulador</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={location.pathname === '/simulation-logs'}
+                        tooltip="Simulação – Logs"
+                      >
+                        <Link to="/simulation-logs">
+                          <Terminal />
+                          <span>Simulação – Logs</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

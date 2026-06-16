@@ -216,6 +216,16 @@ export interface Financial {
   updated: string
 }
 
+export interface SimulationLog {
+  id: string
+  action_type: string
+  content: any
+  event_source: string
+  status: string
+  created: string
+  updated: string
+}
+
 export interface Tecnico {
   id: string
   nome: string

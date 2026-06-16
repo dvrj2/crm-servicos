@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-16T01:19:46.524Z",
+  "generatedAt": "2026-06-16T01:25:24.872Z",
   "collections": [
     {
       "name": "users",
@@ -1283,6 +1283,61 @@
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_sys_settings_key ON system_settings (key)"]
+    },
+    {
+      "name": "simulation_logs",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "action_type",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "content",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "event_source",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_simlogs_action_type ON simulation_logs (action_type)",
+        "CREATE INDEX idx_simlogs_created ON simulation_logs (created)"
+      ]
     }
   ]
 }

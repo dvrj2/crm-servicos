@@ -17,6 +17,7 @@ import Finance from './pages/Finance'
 import Indicators from './pages/Indicators'
 import LogsPage from './pages/Logs'
 import Simulator from './pages/Simulator'
+import SimulationLogs from './pages/SimulationLogs'
 import Layout from './components/Layout'
 import { useEffect } from 'react'
 import { AuthProvider } from './hooks/use-auth'
@@ -70,6 +71,7 @@ const App = () => (
                 <Route path="/indicators" element={<Indicators />} />
                 <Route path="/logs" element={<LogsPage />} />
                 <Route path="/simulator" element={<Simulator />} />
+                <Route path="/simulation-logs" element={<SimulationLogs />} />
               </Route>
             </Route>
 
