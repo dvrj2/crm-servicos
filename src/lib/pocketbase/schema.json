@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-16T01:06:47.459Z",
+  "generatedAt": "2026-06-16T01:19:46.524Z",
   "collections": [
     {
       "name": "users",
@@ -1243,6 +1243,46 @@
         "CREATE INDEX idx_tecnicos_status ON tecnicos (status)",
         "CREATE INDEX idx_tecnicos_regiao ON tecnicos (regiao)"
       ]
+    },
+    {
+      "name": "system_settings",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "key",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "value",
+          "type": "json",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_sys_settings_key ON system_settings (key)"]
     }
   ]
 }
