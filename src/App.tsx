@@ -54,13 +54,8 @@ const RootRedirect = () => {
 const GlobalErrorHandler = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const handleRejection = (event: PromiseRejectionEvent) => {
-      // Ignora cancelamentos de requisição (abort)
       if (event.reason?.isAbort) return
-
-      // Previne que o erro crashe a aplicação (Generic Crash)
       event.preventDefault()
-
-      // Exibe a mensagem de validação detalhada provida pelo backend
       toast.error('Operação não permitida', {
         description: getErrorMessage(event.reason),
       })
@@ -86,6 +81,7 @@ const App = () => (
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
                 <Route path="/" element={<RootRedirect />} />
+
                 <Route element={<ProtectedRoute allowedRoles={['admin', 'empresario']} />}>
                   <Route path="/painel-admin" element={<Index />} />
                   <Route path="/admin" element={<Navigate to="/painel-admin" replace />} />
@@ -99,7 +95,7 @@ const App = () => (
                   <Route path="/clientes" element={<Customers />} />
                   <Route path="/catalogo" element={<CompanyCatalog />} />
                   <Route path="/relatorios-empresa" element={<CompanyReports />} />
-                  <Route path="/painel-empresa" element={<Navigate to="/" replace />} />
+                  <Route path="/report/:id" element={<Report />} />
                 </Route>
 
                 <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
@@ -113,18 +109,19 @@ const App = () => (
                   <Route path="/settings/general" element={<Settings />} />
                 </Route>
 
-                <Route element={<ProtectedRoute allowedRoles={['admin', 'empresario']} />}>
+                <Route
+                  element={<ProtectedRoute allowedRoles={['admin', 'empresario', 'tecnico']} />}
+                >
                   <Route path="/agenda-tecnico" element={<Schedule />} />
                   <Route path="/schedule" element={<Navigate to="/agenda-tecnico" replace />} />
                   <Route path="/execution/:id" element={<Execution />} />
-                  <Route path="/report/:id" element={<Report />} />
                 </Route>
 
-                <Route element={<ProtectedRoute allowedRoles={['tecnico']} />}>
+                <Route element={<ProtectedRoute allowedRoles={['admin', 'tecnico']} />}>
                   <Route path="/painel-tecnico" element={<TechnicianDashboard />} />
                 </Route>
 
-                <Route element={<ProtectedRoute allowedRoles={['cliente']} />}>
+                <Route element={<ProtectedRoute allowedRoles={['admin', 'cliente']} />}>
                   <Route path="/portal-cliente" element={<CustomerPortal />} />
                   <Route
                     path="/customer-portal"

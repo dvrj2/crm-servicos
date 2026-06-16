@@ -1,30 +1,44 @@
 import pb from '@/lib/pocketbase/client'
-import type { Empresario } from '@/types'
+import { Empresario } from '@/types'
 
-export const getEmpresarios = () =>
-  pb.collection<Empresario>('empresarios').getFullList({ sort: '-created' })
-export const createEmpresario = async (data: FormData, senha?: string) => {
-  const empresario = await pb.collection<Empresario>('empresarios').create(data)
+export async function getEmpresarios(): Promise<Empresario[]> {
+  return pb.collection('empresarios').getFullList<Empresario>({
+    sort: 'nome',
+  })
+}
 
-  if (senha) {
-    try {
+export async function createEmpresario(
+  data: FormData | Partial<Empresario>,
+  senha?: string,
+): Promise<Empresario> {
+  const record = await pb.collection('empresarios').create<Empresario>(data)
+
+  if (senha && data instanceof FormData) {
+    const email = data.get('email') as string
+    const nome = data.get('nome') as string
+    if (email) {
       await pb.collection('users').create({
-        name: empresario.nome,
-        email: empresario.email,
+        email,
+        name: nome,
         password: senha,
         passwordConfirm: senha,
         tipo_role: 'empresario',
+        empresa_id: record.id,
         ativo: true,
-        empresa_id: empresario.id,
       })
-    } catch (error) {
-      await pb.collection('empresarios').delete(empresario.id)
-      throw error
     }
   }
 
-  return empresario
+  return record
 }
-export const updateEmpresario = (id: string, data: FormData) =>
-  pb.collection<Empresario>('empresarios').update(id, data)
-export const deleteEmpresario = (id: string) => pb.collection<Empresario>('empresarios').delete(id)
+
+export async function updateEmpresario(
+  id: string,
+  data: FormData | Partial<Empresario>,
+): Promise<Empresario> {
+  return pb.collection('empresarios').update<Empresario>(id, data)
+}
+
+export async function deleteEmpresario(id: string): Promise<void> {
+  return pb.collection('empresarios').delete(id)
+}

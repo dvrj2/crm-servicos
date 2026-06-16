@@ -1,46 +1,63 @@
 import pb from '@/lib/pocketbase/client'
 import { ServiceOrder, User, ServiceOrderPhoto, ServiceFeedback } from '@/types'
-import { getEmpresaFilter, withEmpresaId } from '@/lib/pocketbase/auth-filter'
+import { getEmpresaFilter } from '@/lib/pocketbase/auth-filter'
 
-export const getServiceOrders = async () => {
+export async function getServiceOrders(): Promise<ServiceOrder[]> {
+  const filter = getEmpresaFilter()
   return pb.collection('service_orders').getFullList<ServiceOrder>({
-    filter: getEmpresaFilter(),
+    filter,
+    sort: '-created',
     expand: 'technician,customer',
   })
 }
 
-export const getServiceOrder = async (id: string) => {
-  return pb.collection('service_orders').getOne<ServiceOrder>(id, { expand: 'technician,customer' })
-}
-
-export const updateOrderStatus = async (id: string, status: string) => {
-  return pb.collection('service_orders').update<ServiceOrder>(id, { status })
-}
-
-export const updateOrder = async (id: string, data: Partial<ServiceOrder>) => {
-  return pb.collection('service_orders').update<ServiceOrder>(id, data)
-}
-
-export const deleteOrder = async (id: string) => {
-  return pb.collection('service_orders').delete(id)
-}
-
-export const getTechnicians = async () => {
-  return pb.collection('users').getFullList<User>({
-    filter: getEmpresaFilter("tipo_role = 'tecnico'"),
+export async function getServiceOrder(id: string): Promise<ServiceOrder> {
+  return pb.collection('service_orders').getOne<ServiceOrder>(id, {
+    expand: 'technician,customer',
   })
 }
 
-export const getOrderPhotos = async (orderId: string) => {
-  return pb
-    .collection('service_order_photos')
-    .getFullList<ServiceOrderPhoto>({ filter: `service_order = "${orderId}"` })
+export async function updateOrderStatus(id: string, status: string): Promise<ServiceOrder> {
+  return pb.collection('service_orders').update<ServiceOrder>(id, { status })
 }
 
-export const getAllPhotos = async () => {
-  return pb.collection('service_order_photos').getFullList<ServiceOrderPhoto>()
+export async function updateOrder(id: string, data: Partial<ServiceOrder>): Promise<ServiceOrder> {
+  return pb.collection('service_orders').update<ServiceOrder>(id, data)
 }
 
-export const getServiceFeedbacks = async () => {
-  return pb.collection('service_feedback').getFullList<ServiceFeedback>({ expand: 'service_order' })
+export async function deleteOrder(id: string): Promise<void> {
+  return pb.collection('service_orders').delete(id)
+}
+
+export async function getTechnicians(): Promise<User[]> {
+  let filter = `tipo_role = "tecnico"`
+  const empFilter = getEmpresaFilter()
+  if (empFilter) {
+    filter += ` && ${empFilter}`
+  }
+
+  return pb.collection('users').getFullList<User>({
+    filter,
+    sort: 'name',
+  })
+}
+
+export async function getOrderPhotos(orderId: string): Promise<ServiceOrderPhoto[]> {
+  return pb.collection('service_order_photos').getFullList<ServiceOrderPhoto>({
+    filter: `service_order = "${orderId}"`,
+    sort: '-created',
+  })
+}
+
+export async function getAllPhotos(): Promise<ServiceOrderPhoto[]> {
+  return pb.collection('service_order_photos').getFullList<ServiceOrderPhoto>({
+    sort: '-created',
+  })
+}
+
+export async function getServiceFeedbacks(): Promise<ServiceFeedback[]> {
+  return pb.collection('service_feedback').getFullList<ServiceFeedback>({
+    sort: '-created',
+    expand: 'service_order',
+  })
 }

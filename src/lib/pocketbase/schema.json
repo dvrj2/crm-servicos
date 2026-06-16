@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-16T07:32:24.054Z",
+  "generatedAt": "2026-06-16T18:24:26.008Z",
   "collections": [
     {
       "name": "users",
@@ -133,11 +133,11 @@
       "name": "service_orders",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "view": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "create": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "update": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "delete": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'"
       },
       "fields": [
         {
@@ -722,11 +722,11 @@
       "name": "quotes",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "view": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "create": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "update": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "delete": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'"
       },
       "fields": [
         {
@@ -799,11 +799,11 @@
       "name": "appointments",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "view": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "create": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "update": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "delete": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'"
       },
       "fields": [
         {
@@ -866,11 +866,11 @@
       "name": "executions",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "view": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "create": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "update": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "delete": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'"
       },
       "fields": [
         {
@@ -943,11 +943,11 @@
       "name": "financials",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "view": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "create": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "update": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "delete": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'"
       },
       "fields": [
         {
@@ -1139,11 +1139,11 @@
       "name": "empresarios",
       "type": "base",
       "apiRules": {
-        "list": "@request.auth.id != ''",
-        "view": "@request.auth.id != ''",
-        "create": "@request.auth.id != ''",
-        "update": "@request.auth.id != ''",
-        "delete": "@request.auth.id != ''"
+        "list": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "view": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "create": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "update": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'",
+        "delete": "(@request.auth.id != '') || @request.auth.tipo_role = 'admin'"
       },
       "fields": [
         {

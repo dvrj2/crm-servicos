@@ -10,6 +10,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
+  SidebarGroupLabel,
 } from '@/components/ui/sidebar'
 import {
   Bell,
@@ -26,6 +27,7 @@ import {
   Terminal,
   UserPlus,
   Settings as SettingsIcon,
+  Wrench,
 } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { Input } from '@/components/ui/input'
@@ -88,7 +90,10 @@ export default function Layout() {
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         asChild
-                        isActive={location.pathname === '/schedule'}
+                        isActive={
+                          location.pathname === '/schedule' ||
+                          location.pathname === '/agenda-tecnico'
+                        }
                         tooltip="Agenda"
                       >
                         <Link to="/schedule">
@@ -144,17 +149,21 @@ export default function Layout() {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
 
-                    {user?.tipo_role === 'empresario' && (
+                    {(user?.tipo_role === 'empresario' || user?.tipo_role === 'admin') && (
                       <>
                         <SidebarMenuItem>
                           <SidebarMenuButton
                             asChild
                             isActive={location.pathname === '/clientes'}
-                            tooltip="Meus Clientes"
+                            tooltip={
+                              user?.tipo_role === 'admin' ? 'Todos os Clientes' : 'Meus Clientes'
+                            }
                           >
                             <Link to="/clientes">
                               <Users />
-                              <span>Meus Clientes</span>
+                              <span>
+                                {user?.tipo_role === 'admin' ? 'Clientes' : 'Meus Clientes'}
+                              </span>
                             </Link>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
@@ -268,6 +277,40 @@ export default function Layout() {
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
+
+              {user?.tipo_role === 'admin' && (
+                <SidebarGroup>
+                  <SidebarGroupLabel>Simular Visão</SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={location.pathname === '/painel-tecnico'}
+                          tooltip="Visão Técnico"
+                        >
+                          <Link to="/painel-tecnico">
+                            <Wrench className="w-4 h-4" />
+                            <span>Visão Técnico</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={location.pathname === '/portal-cliente'}
+                          tooltip="Visão Cliente"
+                        >
+                          <Link to="/portal-cliente">
+                            <UserPlus className="w-4 h-4" />
+                            <span>Visão Cliente</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              )}
             </SidebarContent>
           </Sidebar>
 

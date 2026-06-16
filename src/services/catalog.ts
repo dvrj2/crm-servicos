@@ -1,33 +1,43 @@
 import pb from '@/lib/pocketbase/client'
 import { CompanyService, CompanyMaterial } from '@/types'
-import { getEmpresaFilter, withEmpresaId } from '@/lib/pocketbase/auth-filter'
+import { getEmpresaFilter } from '@/lib/pocketbase/auth-filter'
 
-export const getCompanyServices = async () => {
-  return pb
-    .collection('company_services')
-    .getFullList<CompanyService>({ filter: getEmpresaFilter() })
+export async function getCompanyServices() {
+  const filter = getEmpresaFilter()
+  return pb.collection('company_services').getFullList<CompanyService>({
+    filter,
+    sort: 'name',
+  })
 }
-export const createCompanyService = async (data: Partial<CompanyService>) => {
-  return pb.collection('company_services').create<CompanyService>(withEmpresaId(data))
+
+export async function createCompanyService(data: Partial<CompanyService>) {
+  return pb.collection('company_services').create<CompanyService>(data)
 }
-export const updateCompanyService = async (id: string, data: Partial<CompanyService>) => {
+
+export async function updateCompanyService(id: string, data: Partial<CompanyService>) {
   return pb.collection('company_services').update<CompanyService>(id, data)
 }
-export const deleteCompanyService = async (id: string) => {
+
+export async function deleteCompanyService(id: string) {
   return pb.collection('company_services').delete(id)
 }
 
-export const getCompanyMaterials = async () => {
-  return pb
-    .collection('company_materials')
-    .getFullList<CompanyMaterial>({ filter: getEmpresaFilter() })
+export async function getCompanyMaterials() {
+  const filter = getEmpresaFilter()
+  return pb.collection('company_materials').getFullList<CompanyMaterial>({
+    filter,
+    sort: 'name',
+  })
 }
-export const createCompanyMaterial = async (data: Partial<CompanyMaterial>) => {
-  return pb.collection('company_materials').create<CompanyMaterial>(withEmpresaId(data))
+
+export async function createCompanyMaterial(data: Partial<CompanyMaterial>) {
+  return pb.collection('company_materials').create<CompanyMaterial>(data)
 }
-export const updateCompanyMaterial = async (id: string, data: Partial<CompanyMaterial>) => {
+
+export async function updateCompanyMaterial(id: string, data: Partial<CompanyMaterial>) {
   return pb.collection('company_materials').update<CompanyMaterial>(id, data)
 }
-export const deleteCompanyMaterial = async (id: string) => {
+
+export async function deleteCompanyMaterial(id: string) {
   return pb.collection('company_materials').delete(id)
 }

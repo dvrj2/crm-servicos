@@ -5,7 +5,9 @@ import {
   createCompanyService,
   createCompanyMaterial,
 } from '@/services/catalog'
-import { CompanyService, CompanyMaterial } from '@/types'
+import { getEmpresarios } from '@/services/empresarios'
+import { useAuth } from '@/hooks/use-auth'
+import { CompanyService, CompanyMaterial, Empresario } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -25,6 +27,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Package, Wrench, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -32,27 +41,51 @@ export default function CompanyCatalog() {
   const [services, setServices] = useState<CompanyService[]>([])
   const [materials, setMaterials] = useState<CompanyMaterial[]>([])
 
-  const [newService, setNewService] = useState({ name: '', description: '', base_price: 0 })
-  const [newMaterial, setNewMaterial] = useState({ name: '', unit_cost: 0, stock_quantity: 0 })
+  const [newService, setNewService] = useState({
+    name: '',
+    description: '',
+    base_price: 0,
+    empresa_id: '',
+  })
+  const [newMaterial, setNewMaterial] = useState({
+    name: '',
+    unit_cost: 0,
+    stock_quantity: 0,
+    empresa_id: '',
+  })
 
   const [openS, setOpenS] = useState(false)
   const [openM, setOpenM] = useState(false)
+  const [empresas, setEmpresas] = useState<Empresario[]>([])
+
+  const { user } = useAuth()
+  const isAdmin = user?.tipo_role === 'admin'
 
   const loadData = () => {
     getCompanyServices().then(setServices)
     getCompanyMaterials().then(setMaterials)
+    if (isAdmin) {
+      getEmpresarios()
+        .then(setEmpresas)
+        .catch(() => {})
+    }
   }
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [isAdmin])
 
   const handleAddService = async () => {
     if (!newService.name) return toast.error('Nome é obrigatório')
+    if (isAdmin && !newService.empresa_id) return toast.error('Selecione uma empresa')
     try {
-      await createCompanyService(newService)
+      await createCompanyService({
+        ...newService,
+        empresa_id: isAdmin ? newService.empresa_id : user?.empresa_id,
+      })
       toast.success('Serviço adicionado')
       setOpenS(false)
+      setNewService({ name: '', description: '', base_price: 0, empresa_id: '' })
       loadData()
     } catch (e) {
       toast.error('Erro ao adicionar')
@@ -61,10 +94,15 @@ export default function CompanyCatalog() {
 
   const handleAddMaterial = async () => {
     if (!newMaterial.name) return toast.error('Nome é obrigatório')
+    if (isAdmin && !newMaterial.empresa_id) return toast.error('Selecione uma empresa')
     try {
-      await createCompanyMaterial(newMaterial)
+      await createCompanyMaterial({
+        ...newMaterial,
+        empresa_id: isAdmin ? newMaterial.empresa_id : user?.empresa_id,
+      })
       toast.success('Material adicionado')
       setOpenM(false)
+      setNewMaterial({ name: '', unit_cost: 0, stock_quantity: 0, empresa_id: '' })
       loadData()
     } catch (e) {
       toast.error('Erro ao adicionar')
@@ -121,6 +159,26 @@ export default function CompanyCatalog() {
                       }
                     />
                   </div>
+                  {isAdmin && (
+                    <div>
+                      <Label>Empresa</Label>
+                      <Select
+                        value={newService.empresa_id}
+                        onValueChange={(val) => setNewService({ ...newService, empresa_id: val })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a empresa" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {empresas.map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id}>
+                              {emp.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <Button onClick={handleAddService}>Salvar</Button>
                 </div>
               </DialogContent>
@@ -196,6 +254,26 @@ export default function CompanyCatalog() {
                       }
                     />
                   </div>
+                  {isAdmin && (
+                    <div>
+                      <Label>Empresa</Label>
+                      <Select
+                        value={newMaterial.empresa_id}
+                        onValueChange={(val) => setNewMaterial({ ...newMaterial, empresa_id: val })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a empresa" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {empresas.map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id}>
+                              {emp.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <Button onClick={handleAddMaterial}>Salvar</Button>
                 </div>
               </DialogContent>
