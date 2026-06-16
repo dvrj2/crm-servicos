@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-16T01:30:39.471Z",
+  "generatedAt": "2026-06-16T01:39:06.254Z",
   "collections": [
     {
       "name": "users",
@@ -321,7 +321,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["pago", "pendente", "vencido"]
+          "selectValues": ["pago", "pendente", "vencido", "simulado_aprovado", "simulado_negado"]
         },
         {
           "name": "payment_link",
@@ -903,7 +903,7 @@
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["pendente", "pago", "erro"]
+          "selectValues": ["pendente", "pago", "erro", "simulado_aprovado", "simulado_negado"]
         },
         {
           "name": "payment_method",

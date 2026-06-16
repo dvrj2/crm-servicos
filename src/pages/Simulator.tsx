@@ -501,10 +501,20 @@ export default function Simulator() {
                         <div className="text-slate-500">Pagamento:</div>
                         <div>
                           <Badge
-                            variant={os.payment_status === 'pago' ? 'default' : 'secondary'}
-                            className="uppercase"
+                            variant={
+                              os.payment_status === 'pago'
+                                ? 'default'
+                                : os.payment_status === 'simulado_aprovado'
+                                  ? 'outline'
+                                  : 'secondary'
+                            }
+                            className={cn(
+                              'uppercase',
+                              os.payment_status === 'simulado_aprovado' &&
+                                'border-green-500 text-green-700',
+                            )}
                           >
-                            {os.payment_status}
+                            {os.payment_status?.replace('_', ' ')}
                           </Badge>
                         </div>
 

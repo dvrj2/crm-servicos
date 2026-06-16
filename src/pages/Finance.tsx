@@ -10,6 +10,7 @@ import { useSandbox } from '@/hooks/use-sandbox'
 import { toast } from 'sonner'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { useRealtime } from '@/hooks/use-realtime'
+import { cn } from '@/lib/utils'
 
 export default function Finance() {
   const [financials, setFinancials] = useState<
@@ -37,29 +38,15 @@ export default function Finance() {
     loadFinancials()
   })
 
-  const simulatePayment = async (fin: Financial, success: boolean) => {
-    if (!isSandbox) {
-      toast.error('Modo Sandbox inativo. Simulação não permitida.')
-      return
-    }
-
+  const processPayment = async (fin: Financial, success: boolean) => {
     try {
-      if (success) {
-        if (fin.service_order) {
-          await pb.send('/backend/v1/webhook/payment-confirmed', {
-            method: 'POST',
-            body: JSON.stringify({ service_order: fin.service_order }),
-          })
-        } else {
-          await pb.collection('financials').update(fin.id, { payment_status: 'pago' })
-        }
-        toast.success('Pagamento confirmado simulado com sucesso!')
-      } else {
-        await pb.collection('financials').update(fin.id, { payment_status: 'erro' })
-        toast.success('Falha de pagamento simulada com sucesso!')
-      }
+      const res = await pb.send('/backend/v1/payments/process', {
+        method: 'POST',
+        body: JSON.stringify({ financial_id: fin.id, simulate_success: success }),
+      })
+      toast.success(res.message || 'Operação realizada com sucesso!')
     } catch (e) {
-      toast.error('Erro na simulação', { description: getErrorMessage(e) })
+      toast.error('Erro no pagamento', { description: getErrorMessage(e) })
     }
   }
 
@@ -82,7 +69,9 @@ export default function Finance() {
             <div className="text-2xl font-bold">
               R${' '}
               {financials
-                .filter((f) => f.payment_status === 'pago')
+                .filter(
+                  (f) => f.payment_status === 'pago' || f.payment_status === 'simulado_aprovado',
+                )
                 .reduce((acc, curr) => acc + (curr.final_value || 0), 0)
                 .toFixed(2)}
             </div>
@@ -114,7 +103,12 @@ export default function Finance() {
             <div className="text-2xl font-bold text-red-600">
               R${' '}
               {financials
-                .filter((f) => f.payment_status === 'erro' || f.payment_status === 'vencido')
+                .filter(
+                  (f) =>
+                    f.payment_status === 'erro' ||
+                    f.payment_status === 'vencido' ||
+                    f.payment_status === 'simulado_negado',
+                )
                 .reduce((acc, curr) => acc + (curr.final_value || 0), 0)
                 .toFixed(2)}
             </div>
@@ -160,35 +154,46 @@ export default function Finance() {
                       variant={
                         fin.payment_status === 'pago'
                           ? 'default'
-                          : fin.payment_status === 'erro'
-                            ? 'destructive'
-                            : 'secondary'
+                          : fin.payment_status === 'simulado_aprovado'
+                            ? 'outline'
+                            : fin.payment_status === 'erro' ||
+                                fin.payment_status === 'simulado_negado'
+                              ? 'destructive'
+                              : 'secondary'
                       }
-                      className="uppercase text-[10px] tracking-wide"
+                      className={cn(
+                        'uppercase text-[10px] tracking-wide',
+                        fin.payment_status === 'simulado_aprovado' &&
+                          'border-green-500 text-green-700',
+                        fin.payment_status === 'simulado_negado' && 'border-red-500 text-red-700',
+                      )}
                     >
-                      {fin.payment_status || 'desconhecido'}
+                      {fin.payment_status?.replace('_', ' ') || 'desconhecido'}
                     </Badge>
 
-                    {isSandbox && fin.payment_status !== 'pago' && (
-                      <div className="flex gap-2 w-full sm:w-auto">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-green-200 text-green-700 hover:bg-green-50 w-full sm:w-auto"
-                          onClick={() => simulatePayment(fin, true)}
-                        >
-                          <CheckCircle2 className="w-4 h-4 mr-1" /> Aprovar
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-red-200 text-red-700 hover:bg-red-50 w-full sm:w-auto"
-                          onClick={() => simulatePayment(fin, false)}
-                        >
-                          <XCircle className="w-4 h-4 mr-1" /> Negar
-                        </Button>
-                      </div>
-                    )}
+                    {fin.payment_status !== 'pago' &&
+                      fin.payment_status !== 'simulado_aprovado' && (
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-green-200 text-green-700 hover:bg-green-50 w-full sm:w-auto"
+                            onClick={() => processPayment(fin, true)}
+                          >
+                            <CheckCircle2 className="w-4 h-4 mr-1" />{' '}
+                            {isSandbox ? 'Simular Aprovação' : 'Aprovar Pagamento'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-red-200 text-red-700 hover:bg-red-50 w-full sm:w-auto"
+                            onClick={() => processPayment(fin, false)}
+                          >
+                            <XCircle className="w-4 h-4 mr-1" />{' '}
+                            {isSandbox ? 'Simular Falha' : 'Recusar Pagamento'}
+                          </Button>
+                        </div>
+                      )}
                   </div>
                 </div>
               ))}

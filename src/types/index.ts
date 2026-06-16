@@ -52,7 +52,13 @@ export interface User {
   operational_status?: 'available' | 'en_route' | 'busy'
 }
 
-export type PaymentStatus = 'pago' | 'pendente' | 'vencido' | 'erro'
+export type PaymentStatus =
+  | 'pago'
+  | 'pendente'
+  | 'vencido'
+  | 'erro'
+  | 'simulado_aprovado'
+  | 'simulado_negado'
 
 export interface Quote {
   id: string
