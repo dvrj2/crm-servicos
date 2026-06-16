@@ -3,8 +3,17 @@ onRecordAfterUpdateSuccess((e) => {
   try {
     const isSandboxActive = () => {
       try {
-        const settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
-        return settings.get('value')?.enabled === true
+        let isSandbox = false
+        try {
+          const settings = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
+          isSandbox = settings.get('value') === true || settings.get('value')?.enabled === true
+        } catch (err) {
+          try {
+            const settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+            isSandbox = settings.get('value') === true || settings.get('value')?.enabled === true
+          } catch (e) {}
+        }
+        return isSandbox
       } catch (err) {
         return false
       }
@@ -14,18 +23,33 @@ onRecordAfterUpdateSuccess((e) => {
       e.record.get('operation_status') === 'concluido' &&
       e.record.original().get('operation_status') !== 'concluido'
     ) {
-      // Sandbox Webhook Blocking Guard
+      const messageContent = 'Seu serviço foi concluído! Acesse o link para pagamento.'
+      let recipient = 'Unknown'
+      try {
+        const appt = $app.findRecordById('appointments', e.record.id)
+        $app.expandRecord(appt, ['quote.service_order.customer'])
+        const customer = appt.expanded?.quote?.expanded?.service_order?.expanded?.customer
+        if (customer) recipient = customer.getString('phone') || 'Unknown'
+      } catch (err) {}
+
       if (isSandboxActive()) {
-        const log = new Record($app.findCollectionByNameOrId('automation_logs'))
-        log.set('webhook_type', 'SANDBOX_BLOCKED')
-        log.set('action_taken', 'Email/WhatsApp Billing Trigger')
-        log.set('result', 'Bypassed external webhook due to Sandbox Mode')
-        $app.saveNoValidate(log)
+        const log = new Record($app.findCollectionByNameOrId('simulation_logs'))
+        log.set('action_type', 'WhatsApp')
+        log.set('content', {
+          message: messageContent,
+          recipient: recipient,
+          template: 'billing_trigger',
+          note: 'SIMULAÇÃO: WhatsApp enviado',
+        })
+        log.set('status', 'simulado')
+        log.set('event_source', 'on_appt_financial_communication')
+        $app.save(log)
         return e.next()
       }
 
+      // enviarWhatsAppReal(recipient, messageContent)
       // Normal external trigger logic would go here if not in sandbox
-      // Example: $http.send({ url: "https://api.gateway.com/send", ... })
+      // $http.send({ url: "https://api.whatsapp.com/send", ... })
     }
   } catch (err) {}
 

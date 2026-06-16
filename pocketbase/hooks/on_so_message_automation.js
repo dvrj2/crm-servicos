@@ -59,6 +59,45 @@ onRecordAfterCreateSuccess((e) => {
   try {
     const so = $app.findRecordById('service_orders', soId)
 
+    // General outgoing message handling
+    if (senderId) {
+      let isSandbox = false
+      try {
+        let settings = null
+        try {
+          settings = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
+        } catch (err) {
+          settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+        }
+        isSandbox = settings.get('value') === true || settings.get('value')?.enabled === true
+      } catch (err) {}
+
+      let recipient = 'Unknown'
+      try {
+        $app.expandRecord(so, ['customer'])
+        if (so.expanded?.customer) recipient = so.expanded.customer.getString('phone') || 'Unknown'
+      } catch (err) {}
+
+      const text = msg.getString('message')
+
+      if (isSandbox) {
+        try {
+          const simLog = new Record($app.findCollectionByNameOrId('simulation_logs'))
+          simLog.set('action_type', 'WhatsApp')
+          simLog.set('content', {
+            message: text,
+            recipient: recipient,
+            note: 'SIMULAÇÃO: WhatsApp enviado',
+          })
+          simLog.set('status', 'simulado')
+          simLog.set('event_source', 'on_so_message_automation_outgoing')
+          $app.save(simLog)
+        } catch (err) {}
+      } else {
+        // enviarWhatsAppReal(recipient, text)
+      }
+    }
+
     // Auto Approve Quote
     if (so.get('status') === 'orçamento' && senderId) {
       const text = msg.getString('message')
@@ -92,6 +131,41 @@ onRecordAfterCreateSuccess((e) => {
           replyMsg.set('service_order', soId)
           replyMsg.set('message', 'Aprovação recebida com sucesso. O seu serviço foi agendado!')
           $app.save(replyMsg)
+
+          let isSandbox = false
+          try {
+            let settings = null
+            try {
+              settings = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
+            } catch (err) {
+              settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+            }
+            isSandbox = settings.get('value') === true || settings.get('value')?.enabled === true
+          } catch (err) {}
+
+          let recipient = 'Unknown'
+          try {
+            $app.expandRecord(so, ['customer'])
+            if (so.expanded?.customer)
+              recipient = so.expanded.customer.getString('phone') || 'Unknown'
+          } catch (err) {}
+
+          if (isSandbox) {
+            try {
+              const simLog = new Record($app.findCollectionByNameOrId('simulation_logs'))
+              simLog.set('action_type', 'WhatsApp')
+              simLog.set('content', {
+                message: 'Aprovação recebida com sucesso. O seu serviço foi agendado!',
+                recipient: recipient,
+                note: 'SIMULAÇÃO: WhatsApp enviado',
+              })
+              simLog.set('status', 'simulado')
+              simLog.set('event_source', 'on_so_message_automation')
+              $app.save(simLog)
+            } catch (eLog) {}
+          } else {
+            // enviarWhatsAppReal(recipient, 'Aprovação recebida com sucesso. O seu serviço foi agendado!')
+          }
 
           try {
             const log = new Record($app.findCollectionByNameOrId('automation_logs'))
