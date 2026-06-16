@@ -5,6 +5,7 @@ interface AuthContextType {
   user: any
   isAuthenticated: boolean
   signUp: (email: string, password: string) => Promise<{ error: any; user?: any }>
+  signUpUser: (data: any) => Promise<{ error: any; user?: any }>
   signIn: (email: string, password: string) => Promise<{ error: any; user?: any }>
   signOut: () => void
   loading: boolean
@@ -63,6 +64,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const signUpUser = async (data: any) => {
+    try {
+      const res = await pb.send('/backend/v1/signup', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+      pb.authStore.save(res.token, res.record)
+      setUser(res.record)
+      setIsAuthenticated(true)
+      await pb.collection('users').update(res.record.id, { ultimo_login: new Date().toISOString() })
+      return { error: null, user: res.record }
+    } catch (error) {
+      return { error, user: null }
+    }
+  }
+
   const signIn = async (email: string, password: string) => {
     try {
       const authData = await pb.collection('users').authWithPassword(email, password)
@@ -89,6 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         isAuthenticated,
         signUp,
+        signUpUser,
         signIn,
         signOut,
         loading,

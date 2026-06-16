@@ -4,6 +4,7 @@ import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import Index from './pages/Index'
 import Login from './pages/Login'
+import Signup from './pages/Signup'
 import NotFound from './pages/NotFound'
 import Schedule from './pages/Schedule'
 import OrderDetail from './pages/OrderDetail'
@@ -80,13 +81,16 @@ const App = () => (
           <Sonner />
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
 
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
                 <Route path="/" element={<RootRedirect />} />
                 <Route element={<ProtectedRoute allowedRoles={['admin', 'empresario']} />}>
                   <Route path="/painel-admin" element={<Index />} />
+                  <Route path="/admin" element={<Navigate to="/painel-admin" replace />} />
                   <Route path="/" element={<Index />} />
+                  <Route path="/painel-empresario" element={<Navigate to="/" replace />} />
                   <Route path="/order/:id" element={<OrderDetail />} />
                   <Route path="/order/:id/quote" element={<QuotePage />} />
                   <Route path="/technicians" element={<Technicians />} />

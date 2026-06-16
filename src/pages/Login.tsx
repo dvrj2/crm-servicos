@@ -50,15 +50,15 @@ export default function Login() {
     } else if (user) {
       const role = user.tipo_role
       if (role === 'admin') {
-        navigate('/painel-admin')
+        navigate('/admin')
       } else if (role === 'empresario') {
-        navigate('/painel-empresa')
+        navigate('/painel-empresario')
       } else if (role === 'tecnico') {
-        navigate('/agenda-tecnico')
+        navigate('/painel-tecnico')
       } else if (role === 'cliente') {
         navigate('/portal-cliente')
       } else {
-        navigate('/painel-admin')
+        navigate('/admin')
       }
     }
   }
@@ -107,6 +107,18 @@ export default function Login() {
             </Button>
           </form>
         </CardContent>
+        <div className="flex justify-center pb-6">
+          <p className="text-sm text-slate-500">
+            Ainda não tem conta?{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/signup')}
+              className="text-primary font-medium hover:underline"
+            >
+              Cadastre-se
+            </button>
+          </p>
+        </div>
       </Card>
     </div>
   )
