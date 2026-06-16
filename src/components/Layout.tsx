@@ -72,12 +72,16 @@ export default function Layout() {
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         asChild
-                        isActive={location.pathname === '/'}
+                        isActive={
+                          location.pathname === '/' || location.pathname === '/painel-admin'
+                        }
                         tooltip="Painel Kanban"
                       >
                         <Link to="/">
                           <LayoutDashboard />
-                          <span>Painel Kanban</span>
+                          <span>
+                            {user?.tipo_role === 'empresario' ? 'Minhas OS' : 'Painel Kanban'}
+                          </span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -89,34 +93,42 @@ export default function Layout() {
                       >
                         <Link to="/schedule">
                           <CalendarDays />
-                          <span>Agenda</span>
+                          <span>
+                            {user?.tipo_role === 'empresario' ? 'Agenda da Equipe' : 'Agenda'}
+                          </span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={location.pathname === '/empresarios'}
-                        tooltip="Empresários"
-                      >
-                        <Link to="/empresarios">
-                          <Briefcase />
-                          <span>Empresários</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={location.pathname === '/users'}
-                        tooltip="Usuários"
-                      >
-                        <Link to="/users">
-                          <UserPlus />
-                          <span>Usuários</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+
+                    {user?.tipo_role === 'admin' && (
+                      <>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={location.pathname === '/empresarios'}
+                            tooltip="Empresários"
+                          >
+                            <Link to="/empresarios">
+                              <Briefcase />
+                              <span>Empresários</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={location.pathname === '/users'}
+                            tooltip="Usuários"
+                          >
+                            <Link to="/users">
+                              <UserPlus />
+                              <span>Usuários</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </>
+                    )}
+
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         asChild
@@ -125,10 +137,42 @@ export default function Layout() {
                       >
                         <Link to="/technicians">
                           <Users />
-                          <span>Técnicos</span>
+                          <span>
+                            {user?.tipo_role === 'empresario' ? 'Meus Técnicos' : 'Técnicos'}
+                          </span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
+
+                    {user?.tipo_role === 'empresario' && (
+                      <>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={location.pathname === '/clientes'}
+                            tooltip="Meus Clientes"
+                          >
+                            <Link to="/clientes">
+                              <Users />
+                              <span>Meus Clientes</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={location.pathname === '/catalogo'}
+                            tooltip="Catálogo de Serviços"
+                          >
+                            <Link to="/catalogo">
+                              <FileBarChart />
+                              <span>Catálogo</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </>
+                    )}
+
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         asChild
@@ -141,66 +185,86 @@ export default function Layout() {
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
+
+                    {user?.tipo_role === 'admin' && (
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={location.pathname === '/reports'}
+                          tooltip="Relatórios"
+                        >
+                          <Link to="/reports">
+                            <FileBarChart />
+                            <span>Relatórios</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
+
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         asChild
-                        isActive={location.pathname === '/reports'}
-                        tooltip="Relatórios"
-                      >
-                        <Link to="/reports">
-                          <FileBarChart />
-                          <span>Relatórios</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={location.pathname === '/indicators'}
+                        isActive={
+                          location.pathname === '/indicators' ||
+                          location.pathname === '/relatorios-empresa'
+                        }
                         tooltip="Indicadores Estratégicos"
                       >
-                        <Link to="/indicators">
+                        <Link
+                          to={
+                            user?.tipo_role === 'empresario' ? '/relatorios-empresa' : '/indicators'
+                          }
+                        >
                           <LineChart />
-                          <span>Indicadores</span>
+                          <span>
+                            {user?.tipo_role === 'empresario'
+                              ? 'Relatórios de Performance'
+                              : 'Indicadores'}
+                          </span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={location.pathname === '/simulator'}
-                        tooltip="Simulador"
-                      >
-                        <Link to="/simulator">
-                          <Activity />
-                          <span>Simulador</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={location.pathname === '/settings/general'}
-                        tooltip="Configurações Globais"
-                      >
-                        <Link to="/settings/general">
-                          <SettingsIcon />
-                          <span>Configurações</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={location.pathname === '/settings/sandbox'}
-                        tooltip="Logs do Sandbox"
-                      >
-                        <Link to="/settings/sandbox">
-                          <Terminal />
-                          <span>Sandbox Logs</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+
+                    {user?.tipo_role === 'admin' && (
+                      <>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={location.pathname === '/simulator'}
+                            tooltip="Simulador"
+                          >
+                            <Link to="/simulator">
+                              <Activity />
+                              <span>Simulador</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={location.pathname === '/settings/general'}
+                            tooltip="Configurações Globais"
+                          >
+                            <Link to="/settings/general">
+                              <SettingsIcon />
+                              <span>Configurações</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={location.pathname === '/settings/sandbox'}
+                            tooltip="Logs do Sandbox"
+                          >
+                            <Link to="/settings/sandbox">
+                              <Terminal />
+                              <span>Sandbox Logs</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </>
+                    )}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>

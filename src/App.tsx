@@ -23,6 +23,9 @@ import SimulationLogs from './pages/SimulationLogs'
 import Settings from './pages/Settings'
 import CustomerPortal from './pages/CustomerPortal'
 import Layout from './components/Layout'
+import Customers from './pages/Customers'
+import CompanyCatalog from './pages/CompanyCatalog'
+import CompanyReports from './pages/CompanyReports'
 import { useEffect } from 'react'
 import { AuthProvider, useAuth } from './hooks/use-auth'
 import { ProtectedRoute } from './components/ProtectedRoute'
@@ -36,8 +39,7 @@ const RootRedirect = () => {
     case 'admin':
       return <Navigate to="/painel-admin" replace />
     case 'empresario':
-      return <Navigate to="/painel-empresa" replace />
-    case 'tecnico':
+      return <Navigate to="/" replace />    case 'tecnico':
       return <Navigate to="/agenda-tecnico" replace />
     case 'cliente':
       return <Navigate to="/portal-cliente" replace />
@@ -80,12 +82,23 @@ const App = () => (
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
                 <Route path="/" element={<RootRedirect />} />
-                <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                <Route element={<ProtectedRoute allowedRoles={['admin', 'empresario']} />}>
                   <Route path="/painel-admin" element={<Index />} />
+                  <Route path="/" element={<Index />} />
                   <Route path="/order/:id" element={<OrderDetail />} />
                   <Route path="/order/:id/quote" element={<QuotePage />} />
-                  <Route path="/reports" element={<Reports />} />
                   <Route path="/technicians" element={<Technicians />} />
+                  <Route path="/finance" element={<Finance />} />
+                  <Route path="/clientes/novo" element={<CustomerNew />} />
+                  <Route path="/clientes" element={<Customers />} />
+                  <Route path="/catalogo" element={<CompanyCatalog />} />
+                  <Route path="/relatorios-empresa" element={<CompanyReports />} />
+                  <Route path="/painel-empresa" element={<Navigate to="/" replace />} />
+                </Route>
+
+                <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/indicators" element={<Indicators />} />
                   <Route path="/empresarios" element={<EmpresariosPage />} />
                   <Route path="/users" element={<UsersPage />} />
                   <Route path="/logs" element={<LogsPage />} />
@@ -94,14 +107,7 @@ const App = () => (
                   <Route path="/settings/general" element={<Settings />} />
                 </Route>
 
-                <Route element={<ProtectedRoute allowedRoles={['admin', 'empresario']} />}>
-                  <Route path="/painel-empresa" element={<Indicators />} />
-                  <Route path="/indicators" element={<Navigate to="/painel-empresa" replace />} />
-                  <Route path="/finance" element={<Finance />} />
-                  <Route path="/clientes/novo" element={<CustomerNew />} />
-                </Route>
-
-                <Route element={<ProtectedRoute allowedRoles={['admin', 'tecnico']} />}>
+                <Route element={<ProtectedRoute allowedRoles={['admin', 'tecnico', 'empresario']} />}>
                   <Route path="/agenda-tecnico" element={<Schedule />} />
                   <Route path="/schedule" element={<Navigate to="/agenda-tecnico" replace />} />
                   <Route path="/execution/:id" element={<Execution />} />

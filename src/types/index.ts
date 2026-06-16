@@ -21,6 +21,7 @@ export interface Customer {
   lat?: number
   lng?: number
   tipo_cliente?: 'residencial' | 'comercial' | 'industrial'
+  empresa_id?: string
   created: string
   updated: string
 }
@@ -93,6 +94,7 @@ export interface Appointment {
 
 export interface ServiceOrder {
   id: string
+  empresa_id?: string
   _apptId?: string
   _quoteId?: string
   customer_name: string
@@ -217,6 +219,7 @@ export interface Empresario {
 export interface Financial {
   id: string
   execution: string
+  empresa_id?: string
   final_value?: number
   payment_status?: string
   payment_method?: string
@@ -237,9 +240,30 @@ export interface SimulationLog {
   updated: string
 }
 
+export interface CompanyService {
+  id: string
+  name: string
+  description?: string
+  base_price?: number
+  empresa_id: string
+  created: string
+  updated: string
+}
+
+export interface CompanyMaterial {
+  id: string
+  name: string
+  unit_cost?: number
+  stock_quantity?: number
+  empresa_id: string
+  created: string
+  updated: string
+}
+
 export interface Tecnico {
   id: string
   nome: string
+  empresa_id?: string
   cpf: string
   telefone?: string
   email: string
