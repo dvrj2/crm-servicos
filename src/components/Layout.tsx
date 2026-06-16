@@ -166,12 +166,12 @@ export default function Layout() {
                     <SidebarMenuItem>
                       <SidebarMenuButton
                         asChild
-                        isActive={location.pathname === '/simulation-logs'}
-                        tooltip="Simulação – Logs"
+                        isActive={location.pathname === '/settings/sandbox'}
+                        tooltip="Configurações – Sandbox"
                       >
-                        <Link to="/simulation-logs">
+                        <Link to="/settings/sandbox">
                           <Terminal />
-                          <span>Simulação – Logs</span>
+                          <span>Sandbox</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

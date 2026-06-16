@@ -71,7 +71,7 @@ const App = () => (
                 <Route path="/indicators" element={<Indicators />} />
                 <Route path="/logs" element={<LogsPage />} />
                 <Route path="/simulator" element={<Simulator />} />
-                <Route path="/simulation-logs" element={<SimulationLogs />} />
+                <Route path="/settings/sandbox" element={<SimulationLogs />} />
               </Route>
             </Route>
 

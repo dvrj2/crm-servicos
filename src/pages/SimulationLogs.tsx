@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { useState, useEffect } from 'react'
 import {
   Table,
   TableBody,
@@ -8,124 +7,209 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Search, RefreshCw } from 'lucide-react'
-import { format } from 'date-fns'
+import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { getSimulationLogs, clearSimulationLogs } from '@/services/simulation_logs'
+import { useSandbox } from '@/hooks/use-sandbox'
 import { useRealtime } from '@/hooks/use-realtime'
-import { getSimulationLogs } from '@/services/simulation_logs'
+import { format } from 'date-fns'
+import { Trash2, AlertTriangle } from 'lucide-react'
+import { toast } from 'sonner'
 import type { SimulationLog } from '@/types'
 
 export default function SimulationLogs() {
+  const { isSandbox, toggleSandbox } = useSandbox()
   const [logs, setLogs] = useState<SimulationLog[]>([])
-  const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
 
-  const loadData = async () => {
+  const fetchLogs = async () => {
     try {
-      setLoading(true)
       const data = await getSimulationLogs()
       setLogs(data)
-    } catch (err) {
-      console.error(err)
+    } catch (error) {
+      toast.error('Erro ao carregar logs de simulação')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadData()
+    fetchLogs()
   }, [])
 
   useRealtime('simulation_logs', () => {
-    loadData()
+    fetchLogs()
   })
 
-  const filteredLogs = logs.filter((log) => {
-    const searchLower = search.toLowerCase()
-    const contentStr = JSON.stringify(log.content).toLowerCase()
-    return (
-      log.action_type.toLowerCase().includes(searchLower) ||
-      contentStr.includes(searchLower) ||
-      log.event_source.toLowerCase().includes(searchLower)
-    )
-  })
+  const handleClearLogs = async () => {
+    try {
+      await clearSimulationLogs()
+      toast.success('Logs limpos com sucesso')
+      fetchLogs()
+    } catch (error) {
+      toast.error('Erro ao limpar logs')
+    }
+  }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Simulação – Logs</h2>
+    <div className="flex flex-col gap-6 max-w-6xl mx-auto h-full overflow-y-auto pb-10">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          Configurações – Sandbox
+        </h1>
         <p className="text-muted-foreground">
-          Monitore e audite todas as ações simuladas no Sandbox Mode.
+          Gerencie o modo de execução da aplicação e monitore atividades simuladas.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Histórico de Eventos Simulados</CardTitle>
-          <CardDescription>
-            Exibe mensagens, e-mails, pagamentos e integrações de GPS que foram interceptados sem
-            acionar serviços reais.
-          </CardDescription>
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Filtrar logs..."
-                className="pl-9"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 shrink-0">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              Estado do Sistema
+              {isSandbox && (
+                <Badge
+                  variant="destructive"
+                  className="bg-amber-500 text-amber-950 border-transparent"
+                >
+                  <AlertTriangle className="w-3 h-3 mr-1" />
+                  SANDBOX ACTIVE
+                </Badge>
+              )}
+            </CardTitle>
+            <CardDescription>
+              Habilite o modo sandbox para interceptar ações reais (WhatsApp, Pagamentos, GPS) e
+              apenas registrar logs.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-white">
+              <div className="flex flex-col gap-1">
+                <span className="font-semibold text-slate-900">Modo Sandbox</span>
+                <span className="text-sm text-muted-foreground">
+                  {isSandbox ? 'Interceptando ações reais.' : 'Ações reais serão executadas.'}
+                </span>
+              </div>
+              <Switch
+                checked={isSandbox}
+                onCheckedChange={toggleSandbox}
+                className="data-[state=checked]:bg-amber-600"
               />
             </div>
-            <Button variant="outline" onClick={loadData} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Atualizar
-            </Button>
-          </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Dashboard de Simulação</CardTitle>
+            <CardDescription>Resumo das ações interceptadas pelo sistema.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between h-[88px]">
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-muted-foreground">
+                Total de Ações Simuladas
+              </span>
+              <span className="text-4xl font-bold text-slate-900">{logs.length}</span>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={logs.length === 0}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Limpar Logs
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Limpar Histórico de Simulação?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação apagará todos os {logs.length} logs de simulação registrados. Não é
+                    possível reverter.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleClearLogs}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Confirmar Limpeza
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="flex-1 flex flex-col min-h-[400px] overflow-hidden">
+        <CardHeader className="shrink-0">
+          <CardTitle>Histórico de Logs</CardTitle>
+          <CardDescription>
+            Lista detalhada de todas as ações interceptadas no modo sandbox.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-hidden">
-            <Table>
-              <TableHeader>
+        <CardContent className="flex-1 overflow-auto p-0 m-6 mt-0 border rounded-md">
+          <Table>
+            <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
+              <TableRow>
+                <TableHead className="w-[160px]">Data/Hora</TableHead>
+                <TableHead className="w-[180px]">Tipo de Ação</TableHead>
+                <TableHead className="w-[180px]">Status Simulado</TableHead>
+                <TableHead className="w-[180px]">Origem</TableHead>
+                <TableHead>Conteúdo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
                 <TableRow>
-                  <TableHead className="w-[180px]">Horário</TableHead>
-                  <TableHead>Tipo da Ação</TableHead>
-                  <TableHead>Conteúdo</TableHead>
-                  <TableHead>Origem do Evento</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    Carregando logs...
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredLogs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      Nenhum log encontrado.
+              ) : logs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    Nenhum log de simulação registrado.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell className="font-medium whitespace-nowrap">
+                      {format(new Date(log.created), 'dd/MM/yyyy HH:mm')}
                     </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="font-medium whitespace-nowrap">
-                        {format(new Date(log.created), 'dd/MM/yyyy HH:mm:ss')}
-                      </TableCell>
-                      <TableCell>{log.action_type}</TableCell>
-                      <TableCell className="max-w-[400px]">
-                        <pre className="text-xs text-slate-600 bg-slate-50 p-2 rounded overflow-x-auto whitespace-pre-wrap">
+                    <TableCell className="font-medium text-slate-700">{log.action_type}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize font-normal">
+                        {log.status.replace(/_/g, ' ')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{log.event_source}</TableCell>
+                    <TableCell>
+                      <div className="max-w-[400px] max-h-[120px] overflow-auto">
+                        <pre className="text-[11px] bg-slate-50 p-2 rounded border text-slate-600 whitespace-pre-wrap">
                           {JSON.stringify(log.content, null, 2)}
                         </pre>
-                      </TableCell>
-                      <TableCell className="text-sm">{log.event_source}</TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
-                          {log.status}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

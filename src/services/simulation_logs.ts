@@ -6,3 +6,7 @@ export const getSimulationLogs = async () => {
     sort: '-created',
   })
 }
+
+export const clearSimulationLogs = async () => {
+  return pb.send('/backend/v1/simulation-logs/clear', { method: 'DELETE' })
+}
