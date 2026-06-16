@@ -18,18 +18,46 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      toast({
+        title: 'Erro de validação',
+        description: 'Email inválido',
+        variant: 'destructive',
+      })
+      return
+    }
+
     setLoading(true)
-    const { error } = await signIn(email, password)
+    const { error, user } = await signIn(email, password)
     setLoading(false)
 
     if (error) {
-      toast({
-        title: 'Erro ao entrar',
-        description: 'Verifique suas credenciais e tente novamente.',
-        variant: 'destructive',
-      })
-    } else {
-      navigate('/')
+      if (error.message === 'INACTIVE_ACCOUNT') {
+        toast({
+          title: 'Acesso Negado',
+          description: 'Sua conta está desativada. Entre em contato com o suporte.',
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'Erro ao entrar',
+          description: 'Email ou senha incorretos',
+          variant: 'destructive',
+        })
+      }
+    } else if (user) {
+      const role = user.tipo_role
+      if (role === 'admin') {
+        navigate('/')
+      } else if (role === 'empresario') {
+        navigate('/indicators')
+      } else if (role === 'tecnico') {
+        navigate('/schedule')
+      } else {
+        navigate('/')
+      }
     }
   }
 

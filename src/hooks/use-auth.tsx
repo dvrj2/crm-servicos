@@ -4,7 +4,7 @@ import pb from '@/lib/pocketbase/client'
 interface AuthContextType {
   user: any
   isAuthenticated: boolean
-  signIn: (email: string, pass: string) => Promise<{ error: any }>
+  signIn: (email: string, pass: string) => Promise<{ error: any; user?: any }>
   signOut: () => void
   loading: boolean
 }
@@ -44,8 +44,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, pass: string) => {
     try {
-      await pb.collection('users').authWithPassword(email, pass)
-      return { error: null }
+      const authData = await pb.collection('users').authWithPassword(email, pass)
+
+      if (authData.record.ativo === false) {
+        pb.authStore.clear()
+        return { error: new Error('INACTIVE_ACCOUNT') }
+      }
+
+      try {
+        await pb.collection('users').update(authData.record.id, {
+          ultimo_login: new Date().toISOString(),
+        })
+      } catch (updateError) {
+        console.error('Failed to update ultimo_login', updateError)
+      }
+
+      return { error: null, user: authData.record }
     } catch (error) {
       return { error }
     }
