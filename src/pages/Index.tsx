@@ -3,7 +3,9 @@ import { KanbanBoard } from '@/components/kanban/KanbanBoard'
 import { ServiceOrder, User } from '@/types'
 import { getServiceOrders, getTechnicians, updateOrder } from '@/services/api'
 import { useRealtime } from '@/hooks/use-realtime'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate, Link } from 'react-router-dom'
+import { useAuth } from '@/hooks/use-auth'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectContent,
@@ -13,6 +15,7 @@ import {
 } from '@/components/ui/select'
 
 export default function Index() {
+  const { user } = useAuth()
   const [orders, setOrders] = useState<ServiceOrder[]>([])
   const [technicians, setTechnicians] = useState<User[]>([])
   const navigate = useNavigate()
@@ -96,6 +99,24 @@ export default function Index() {
 
   const handleCardClick = (order: ServiceOrder) => {
     navigate(`/execution/${order.id}`)
+  }
+
+  if (user && user.tipo_role !== 'admin') {
+    if (user.tipo_role === 'empresario') return <Navigate to="/indicators" replace />
+    if (user.tipo_role === 'tecnico') return <Navigate to="/schedule" replace />
+    if (user.tipo_role === 'cliente') return <Navigate to="/customer-portal" replace />
+
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[60vh] p-4 text-center">
+        <h1 className="text-4xl font-bold text-slate-900 mb-4">Acesso Negado</h1>
+        <p className="text-slate-500 mb-8 max-w-md">
+          Você não tem permissão para acessar o painel administrativo.
+        </p>
+        <Button asChild>
+          <Link to="/login">Voltar para o Login</Link>
+        </Button>
+      </div>
+    )
   }
 
   return (

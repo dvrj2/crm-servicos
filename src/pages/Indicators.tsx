@@ -43,21 +43,15 @@ export default function IndicatorsPage() {
     Promise.all([
       pb.collection('service_orders').getFullList<ServiceOrder>({ filter: orderFilter }),
       pb.collection('users').getFullList<User>({ filter: userFilter }),
-      pb
-        .collection('service_feedback')
-        .getFullList<ServiceFeedback>({
-          filter: orderFilter ? `service_order.technician.empresa_id = "${user.empresa_id}"` : '',
-        }),
-      pb
-        .collection('service_order_photos')
-        .getFullList<ServiceOrderPhoto>({
-          filter: orderFilter ? `service_order.technician.empresa_id = "${user.empresa_id}"` : '',
-        }),
-      pb
-        .collection('financials')
-        .getFullList<Financial>({
-          filter: orderFilter ? `service_order.technician.empresa_id = "${user.empresa_id}"` : '',
-        }),
+      pb.collection('service_feedback').getFullList<ServiceFeedback>({
+        filter: orderFilter ? `service_order.technician.empresa_id = "${user.empresa_id}"` : '',
+      }),
+      pb.collection('service_order_photos').getFullList<ServiceOrderPhoto>({
+        filter: orderFilter ? `service_order.technician.empresa_id = "${user.empresa_id}"` : '',
+      }),
+      pb.collection('financials').getFullList<Financial>({
+        filter: orderFilter ? `service_order.technician.empresa_id = "${user.empresa_id}"` : '',
+      }),
     ])
       .then(([o, u, f, p, fin]) => {
         setOrders(o)

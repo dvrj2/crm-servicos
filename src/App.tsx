@@ -59,8 +59,8 @@ const App = () => (
 
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
+                <Route path="/" element={<Index />} />
                 <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-                  <Route path="/" element={<Index />} />
                   <Route path="/order/:id" element={<OrderDetail />} />
                   <Route path="/order/:id/quote" element={<QuotePage />} />
                   <Route path="/reports" element={<Reports />} />
