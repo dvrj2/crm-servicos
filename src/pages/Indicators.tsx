@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
 import { ServiceOrder, User, ServiceFeedback, ServiceOrderPhoto, Financial } from '@/types'
 import { useDashboardMetrics } from '@/hooks/use-dashboard-metrics'
+import { useAuth } from '@/hooks/use-auth'
 import { FiltersBar } from '@/components/indicators/FiltersBar'
 import { OperationalPanel } from '@/components/indicators/OperationalPanel'
 import { CommercialPanel } from '@/components/indicators/CommercialPanel'
@@ -15,6 +16,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 
 export default function IndicatorsPage() {
+  const { user } = useAuth()
   const [orders, setOrders] = useState<ServiceOrder[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [feedbacks, setFeedbacks] = useState<ServiceFeedback[]>([])
@@ -29,12 +31,33 @@ export default function IndicatorsPage() {
   })
 
   useEffect(() => {
+    if (!user) return
+
+    const userFilter =
+      user.tipo_role === 'empresario' && user.empresa_id ? `empresa_id = "${user.empresa_id}"` : ''
+    const orderFilter =
+      user.tipo_role === 'empresario' && user.empresa_id
+        ? `technician.empresa_id = "${user.empresa_id}"`
+        : ''
+
     Promise.all([
-      pb.collection('service_orders').getFullList<ServiceOrder>(),
-      pb.collection('users').getFullList<User>(),
-      pb.collection('service_feedback').getFullList<ServiceFeedback>(),
-      pb.collection('service_order_photos').getFullList<ServiceOrderPhoto>(),
-      pb.collection('financials').getFullList<Financial>(),
+      pb.collection('service_orders').getFullList<ServiceOrder>({ filter: orderFilter }),
+      pb.collection('users').getFullList<User>({ filter: userFilter }),
+      pb
+        .collection('service_feedback')
+        .getFullList<ServiceFeedback>({
+          filter: orderFilter ? `service_order.technician.empresa_id = "${user.empresa_id}"` : '',
+        }),
+      pb
+        .collection('service_order_photos')
+        .getFullList<ServiceOrderPhoto>({
+          filter: orderFilter ? `service_order.technician.empresa_id = "${user.empresa_id}"` : '',
+        }),
+      pb
+        .collection('financials')
+        .getFullList<Financial>({
+          filter: orderFilter ? `service_order.technician.empresa_id = "${user.empresa_id}"` : '',
+        }),
     ])
       .then(([o, u, f, p, fin]) => {
         setOrders(o)
@@ -45,7 +68,7 @@ export default function IndicatorsPage() {
         setLoading(false)
       })
       .catch(console.error)
-  }, [])
+  }, [user])
 
   const metrics = useDashboardMetrics(orders, users, feedbacks, photos, financials, filters)
 

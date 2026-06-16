@@ -9,8 +9,10 @@ import { toast } from '@/components/ui/use-toast'
 import { ScheduleFilters } from '@/components/schedule/ScheduleFilters'
 import { TimelineGrid } from '@/components/schedule/TimelineGrid'
 import { MapPanel } from '@/components/schedule/MapPanel'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function Schedule() {
+  const { user } = useAuth()
   const [orders, setOrders] = useState<ServiceOrder[]>([])
   const [techs, setTechs] = useState<User[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -19,7 +21,9 @@ export default function Schedule() {
   const [weekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const weekDates = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i))
 
-  const [selectedTechId, setSelectedTechId] = useState<string>('_all')
+  const [selectedTechId, setSelectedTechId] = useState<string>(
+    user?.tipo_role === 'tecnico' ? user.id : '_all',
+  )
   const [minCapacity, setMinCapacity] = useState<number>(0)
   const [regionFilter, setRegionFilter] = useState<string>('_all')
   const [urgencyFilter, setUrgencyFilter] = useState<string>('_all')
@@ -181,22 +185,26 @@ export default function Schedule() {
   return (
     <div className="flex flex-col h-full gap-4 pb-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-slate-800">Agenda dos Técnicos</h1>
+        <h1 className="text-2xl font-bold text-slate-800">
+          {user?.tipo_role === 'tecnico' ? 'Minha Agenda' : 'Agenda dos Técnicos'}
+        </h1>
       </div>
 
-      <ScheduleFilters
-        techs={techs}
-        selectedTechId={selectedTechId}
-        setSelectedTechId={setSelectedTechId}
-        minCapacity={minCapacity}
-        setMinCapacity={setMinCapacity}
-        regionFilter={regionFilter}
-        setRegionFilter={setRegionFilter}
-        urgencyFilter={urgencyFilter}
-        setUrgencyFilter={setUrgencyFilter}
-        serviceTypeFilter={serviceTypeFilter}
-        setServiceTypeFilter={setServiceTypeFilter}
-      />
+      {user?.tipo_role !== 'tecnico' && (
+        <ScheduleFilters
+          techs={techs}
+          selectedTechId={selectedTechId}
+          setSelectedTechId={setSelectedTechId}
+          minCapacity={minCapacity}
+          setMinCapacity={setMinCapacity}
+          regionFilter={regionFilter}
+          setRegionFilter={setRegionFilter}
+          urgencyFilter={urgencyFilter}
+          setUrgencyFilter={setUrgencyFilter}
+          serviceTypeFilter={serviceTypeFilter}
+          setServiceTypeFilter={setServiceTypeFilter}
+        />
+      )}
 
       <div className="flex-1 min-h-[500px]">
         <ResizablePanelGroup direction="horizontal">

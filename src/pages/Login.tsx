@@ -37,7 +37,7 @@ export default function Login() {
       if (error.message === 'INACTIVE_ACCOUNT') {
         toast({
           title: 'Acesso Negado',
-          description: 'Sua conta está desativada. Entre em contato com o suporte.',
+          description: 'Sua conta está inativa. Entre em contato com o administrador.',
           variant: 'destructive',
         })
       } else {
@@ -55,6 +55,8 @@ export default function Login() {
         navigate('/indicators')
       } else if (role === 'tecnico') {
         navigate('/schedule')
+      } else if (role === 'cliente') {
+        navigate('/customer-portal')
       } else {
         navigate('/')
       }

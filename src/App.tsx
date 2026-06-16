@@ -18,6 +18,7 @@ import Indicators from './pages/Indicators'
 import LogsPage from './pages/Logs'
 import Simulator from './pages/Simulator'
 import SimulationLogs from './pages/SimulationLogs'
+import CustomerPortal from './pages/CustomerPortal'
 import Layout from './components/Layout'
 import { useEffect } from 'react'
 import { AuthProvider } from './hooks/use-auth'
@@ -58,20 +59,37 @@ const App = () => (
 
             <Route element={<ProtectedRoute />}>
               <Route element={<Layout />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/order/:id" element={<OrderDetail />} />
-                <Route path="/order/:id/quote" element={<QuotePage />} />
-                <Route path="/schedule" element={<Schedule />} />
-                <Route path="/execution/:id" element={<Execution />} />
-                <Route path="/report/:id" element={<Report />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/technicians" element={<Technicians />} />
-                <Route path="/empresarios" element={<EmpresariosPage />} />
-                <Route path="/finance" element={<Finance />} />
-                <Route path="/indicators" element={<Indicators />} />
-                <Route path="/logs" element={<LogsPage />} />
-                <Route path="/simulator" element={<Simulator />} />
-                <Route path="/settings/sandbox" element={<SimulationLogs />} />
+                <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/order/:id" element={<OrderDetail />} />
+                  <Route path="/order/:id/quote" element={<QuotePage />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path="/technicians" element={<Technicians />} />
+                  <Route path="/empresarios" element={<EmpresariosPage />} />
+                  <Route path="/logs" element={<LogsPage />} />
+                  <Route path="/simulator" element={<Simulator />} />
+                  <Route path="/settings/sandbox" element={<SimulationLogs />} />
+                </Route>
+
+                <Route element={<ProtectedRoute allowedRoles={['admin', 'empresario']} />}>
+                  <Route path="/indicators" element={<Indicators />} />
+                  <Route path="/finance" element={<Finance />} />
+                </Route>
+
+                <Route element={<ProtectedRoute allowedRoles={['admin', 'tecnico']} />}>
+                  <Route path="/schedule" element={<Schedule />} />
+                  <Route path="/execution/:id" element={<Execution />} />
+                </Route>
+
+                <Route
+                  element={<ProtectedRoute allowedRoles={['admin', 'tecnico', 'empresario']} />}
+                >
+                  <Route path="/report/:id" element={<Report />} />
+                </Route>
+
+                <Route element={<ProtectedRoute allowedRoles={['cliente']} />}>
+                  <Route path="/customer-portal" element={<CustomerPortal />} />
+                </Route>
               </Route>
             </Route>
 
