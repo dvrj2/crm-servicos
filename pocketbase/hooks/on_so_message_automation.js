@@ -83,7 +83,7 @@ onRecordAfterCreateSuccess((e) => {
       if (isSandbox) {
         try {
           const simLog = new Record($app.findCollectionByNameOrId('simulation_logs'))
-          simLog.set('action_type', 'WhatsApp')
+          simLog.set('action_type', 'whatsapp_message')
           simLog.set('content', {
             message: text,
             recipient: recipient,
@@ -101,18 +101,52 @@ onRecordAfterCreateSuccess((e) => {
     // Auto Approve Quote
     if (so.get('status') === 'orçamento' && senderId) {
       const text = msg.getString('message')
-      const reply = $ai.chat({
-        model: 'fast',
-        messages: [
-          {
-            role: 'system',
-            content:
-              "Analise a intenção da mensagem. Responda APENAS 'sim' se a mensagem indicar aprovação explícita do orçamento ou agendamento do serviço, caso contrário responda 'nao'.",
-          },
-          { role: 'user', content: text },
-        ],
-      })
-      const content = reply.choices[0].message.content.toLowerCase()
+
+      let isSandboxApproval = false
+      try {
+        let settings = null
+        try {
+          settings = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
+        } catch (err) {
+          settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+        }
+        isSandboxApproval =
+          settings.get('value') === true || settings.get('value')?.enabled === true
+      } catch (err) {}
+
+      let content = 'nao'
+      if (isSandboxApproval) {
+        if (text.toLowerCase().includes('sim') || text.toLowerCase().includes('aprovo')) {
+          content = 'sim'
+        }
+        try {
+          const simLog = new Record($app.findCollectionByNameOrId('simulation_logs'))
+          simLog.set('action_type', 'ai_mock')
+          simLog.set('content', {
+            service_order: soId,
+            mock: 'message_intent',
+            text,
+            is_approval: content === 'sim',
+          })
+          simLog.set('status', 'simulado')
+          simLog.set('event_source', 'on_so_message_automation_intent')
+          $app.saveNoValidate(simLog)
+        } catch (err) {}
+      } else {
+        const reply = $ai.chat({
+          model: 'fast',
+          messages: [
+            {
+              role: 'system',
+              content:
+                "Analise a intenção da mensagem. Responda APENAS 'sim' se a mensagem indicar aprovação explícita do orçamento ou agendamento do serviço, caso contrário responda 'nao'.",
+            },
+            { role: 'user', content: text },
+          ],
+        })
+        content = reply.choices[0].message.content.toLowerCase()
+      }
+
       if (content.includes('sim')) {
         try {
           const quote = $app.findFirstRecordByData('quotes', 'service_order', soId)
@@ -132,17 +166,6 @@ onRecordAfterCreateSuccess((e) => {
           replyMsg.set('message', 'Aprovação recebida com sucesso. O seu serviço foi agendado!')
           $app.save(replyMsg)
 
-          let isSandbox = false
-          try {
-            let settings = null
-            try {
-              settings = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
-            } catch (err) {
-              settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
-            }
-            isSandbox = settings.get('value') === true || settings.get('value')?.enabled === true
-          } catch (err) {}
-
           let recipient = 'Unknown'
           try {
             $app.expandRecord(so, ['customer'])
@@ -150,10 +173,10 @@ onRecordAfterCreateSuccess((e) => {
               recipient = so.expanded.customer.getString('phone') || 'Unknown'
           } catch (err) {}
 
-          if (isSandbox) {
+          if (isSandboxApproval) {
             try {
               const simLog = new Record($app.findCollectionByNameOrId('simulation_logs'))
-              simLog.set('action_type', 'WhatsApp')
+              simLog.set('action_type', 'whatsapp_message')
               simLog.set('content', {
                 message: 'Aprovação recebida com sucesso. O seu serviço foi agendado!',
                 recipient: recipient,

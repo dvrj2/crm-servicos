@@ -34,7 +34,7 @@ onRecordAfterUpdateSuccess((e) => {
 
       if (isSandboxActive()) {
         const log = new Record($app.findCollectionByNameOrId('simulation_logs'))
-        log.set('action_type', 'WhatsApp')
+        log.set('action_type', 'whatsapp_message')
         log.set('content', {
           message: messageContent,
           recipient: recipient,

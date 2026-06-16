@@ -10,6 +10,20 @@ routerAdd(
       $app.runInTransaction((txApp) => {
         const os = txApp.findRecordById('service_orders', osId)
 
+        let isSandbox = false
+        try {
+          try {
+            const s = txApp.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
+            if (s.get('value') === true || s.get('value')?.enabled === true) isSandbox = true
+          } catch (_) {}
+          if (!isSandbox) {
+            try {
+              const s = txApp.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+              if (s.get('value') === true || s.get('value')?.enabled === true) isSandbox = true
+            } catch (_) {}
+          }
+        } catch (_) {}
+
         if (os.getString('technician')) {
           resultData = { assigned: false, reason: 'Already assigned' }
           return
@@ -45,6 +59,23 @@ routerAdd(
         }
 
         const logsCollection = txApp.findCollectionByNameOrId('automation_logs')
+        const simLogsCollection = txApp.findCollectionByNameOrId('simulation_logs')
+
+        if (isSandbox) {
+          try {
+            const simLog = new Record(simLogsCollection)
+            simLog.set('action_type', 'location_mock')
+            simLog.set('content', {
+              service_order: os.id,
+              technician_found: bestTech ? bestTech.id : null,
+              distance: shortestDist,
+              mocked_routing: true,
+            })
+            simLog.set('status', 'simulado')
+            simLog.set('event_source', 'suggest_technician')
+            txApp.save(simLog)
+          } catch (eLog) {}
+        }
 
         if (!bestTech) {
           const log = new Record(logsCollection)

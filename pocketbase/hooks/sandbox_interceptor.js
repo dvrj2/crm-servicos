@@ -2,8 +2,15 @@
 onRecordUpdate((e) => {
   function isSandboxActive() {
     try {
-      const settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
-      return settings.get('value')?.enabled === true
+      try {
+        const s = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
+        if (s.get('value') === true || s.get('value')?.enabled === true) return true
+      } catch (_) {}
+      try {
+        const s = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+        if (s.get('value') === true || s.get('value')?.enabled === true) return true
+      } catch (_) {}
+      return false
     } catch (err) {
       return false
     }
@@ -21,7 +28,7 @@ onRecordUpdate((e) => {
 
       try {
         const log = new Record($app.findCollectionByNameOrId('simulation_logs'))
-        log.set('action_type', 'GPS')
+        log.set('action_type', 'location_mock')
         log.set('content', {
           requested: { lat: newLat, lng: newLng },
           provided: { lat: -23.5505, lng: -46.6333 },
@@ -39,8 +46,15 @@ onRecordUpdate((e) => {
 onRecordAfterCreateSuccess((e) => {
   function isSandboxActive() {
     try {
-      const settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
-      return settings.get('value')?.enabled === true
+      try {
+        const s = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
+        if (s.get('value') === true || s.get('value')?.enabled === true) return true
+      } catch (_) {}
+      try {
+        const s = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+        if (s.get('value') === true || s.get('value')?.enabled === true) return true
+      } catch (_) {}
+      return false
     } catch (err) {
       return false
     }
@@ -49,7 +63,7 @@ onRecordAfterCreateSuccess((e) => {
   if (isSandboxActive() && e.record.get('sender') === '') {
     try {
       const log = new Record($app.findCollectionByNameOrId('simulation_logs'))
-      log.set('action_type', 'WhatsApp')
+      log.set('action_type', 'whatsapp_message')
       log.set('content', {
         service_order: e.record.get('service_order'),
         message: e.record.get('message'),
@@ -67,8 +81,15 @@ onRecordAfterCreateSuccess((e) => {
 onRecordAfterUpdateSuccess((e) => {
   function isSandboxActive() {
     try {
-      const settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
-      return settings.get('value')?.enabled === true
+      try {
+        const s = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
+        if (s.get('value') === true || s.get('value')?.enabled === true) return true
+      } catch (_) {}
+      try {
+        const s = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+        if (s.get('value') === true || s.get('value')?.enabled === true) return true
+      } catch (_) {}
+      return false
     } catch (err) {
       return false
     }
@@ -80,7 +101,7 @@ onRecordAfterUpdateSuccess((e) => {
     if (oldStatus !== 'concluído' && newStatus === 'concluído') {
       try {
         const log = new Record($app.findCollectionByNameOrId('simulation_logs'))
-        log.set('action_type', 'Email')
+        log.set('action_type', 'email_sent')
         log.set('content', {
           service_order: e.record.id,
           subject: 'Pesquisa de Satisfação',
@@ -100,8 +121,15 @@ onRecordAfterUpdateSuccess((e) => {
 onRecordUpdate((e) => {
   function isSandboxActive() {
     try {
-      const settings = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
-      return settings.get('value')?.enabled === true
+      try {
+        const s = $app.findFirstRecordByData('system_settings', 'key', 'modo_sandbox')
+        if (s.get('value') === true || s.get('value')?.enabled === true) return true
+      } catch (_) {}
+      try {
+        const s = $app.findFirstRecordByData('system_settings', 'key', 'sandbox_mode')
+        if (s.get('value') === true || s.get('value')?.enabled === true) return true
+      } catch (_) {}
+      return false
     } catch (err) {
       return false
     }
@@ -113,7 +141,7 @@ onRecordUpdate((e) => {
     if (oldStatus !== newStatus && newStatus === 'pago') {
       try {
         const log = new Record($app.findCollectionByNameOrId('simulation_logs'))
-        log.set('action_type', 'Payment')
+        log.set('action_type', 'payment_transaction')
         log.set('content', {
           execution: e.record.get('execution'),
           value: e.record.get('final_value'),
