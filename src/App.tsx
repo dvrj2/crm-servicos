@@ -39,7 +39,8 @@ const RootRedirect = () => {
     case 'admin':
       return <Navigate to="/painel-admin" replace />
     case 'empresario':
-      return <Navigate to="/" replace />    case 'tecnico':
+      return <Navigate to="/" replace />
+    case 'tecnico':
       return <Navigate to="/agenda-tecnico" replace />
     case 'cliente':
       return <Navigate to="/portal-cliente" replace />
@@ -107,7 +108,9 @@ const App = () => (
                   <Route path="/settings/general" element={<Settings />} />
                 </Route>
 
-                <Route element={<ProtectedRoute allowedRoles={['admin', 'tecnico', 'empresario']} />}>
+                <Route
+                  element={<ProtectedRoute allowedRoles={['admin', 'tecnico', 'empresario']} />}
+                >
                   <Route path="/agenda-tecnico" element={<Schedule />} />
                   <Route path="/schedule" element={<Navigate to="/agenda-tecnico" replace />} />
                   <Route path="/execution/:id" element={<Execution />} />
