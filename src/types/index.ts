@@ -50,6 +50,11 @@ export interface User {
   certifications?: string
   status?: 'disponível' | 'em rota' | 'ocupado'
   operational_status?: 'available' | 'en_route' | 'busy'
+  tipo_role?: 'admin' | 'empresario' | 'tecnico' | 'cliente'
+  empresa_id?: string
+  cliente_id?: string
+  ultimo_login?: string
+  ativo?: boolean
 }
 
 export type PaymentStatus =
